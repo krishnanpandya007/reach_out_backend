@@ -1,0 +1,66 @@
+# Django specific files and folders
+*.pyc
+__pycache__/
+*.sqlite3
+*.env
+
+# Static files
+/static/
+
+# Media files
+/media/
+
+# Virtual environment
+venv/
+env/
+pip-selfcheck.json
+
+# Log files
+*.log
+
+# Ignore database settings
+*.settings
+
+# Ignore local development settings
+*.local
+
+# Ignore sensitive or private information
+secret_key.txt
+settings.ini
+credentials.json
+
+# Ignore IDE and editor files
+.vscode/
+.idea/
+*.pydevproject
+*.pydevworkspace
+*.project
+*.settings
+*.tmproj
+*.sublime-workspace
+*.sublime-project
+*.komodoproject
+*.komodotools
+/.*.swp
+/.*.swo
+
+# Ignore miscellaneous files
+*.bak
+*.tmp
+
+# Ignore compiled files
+*.pyo
+*.pyd
+*.dll
+*.so
+*.dylib
+*.exe
+*.out
+
+# Ignore package manager files
+pip-lock.txt
+yarn.lock
+package-lock.json
+
+#Also some additional .md files
+*.md

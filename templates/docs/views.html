@@ -1,0 +1,530 @@
+{% extends 'base.html' %}
+{% block content %}
+
+    <center>
+    <input type="search" id="docs_search" placeholder="Search here..." />
+    </center>
+
+<div id="views_container">
+<div id="signup">
+    <!-- <div > -->
+        <p class="view_url">/auth2/signup/</p>
+    <!-- </div> -->
+
+    <h5><b class="method">[POST]</b><b class="app_name">auth2</b> SignUp<code>(request) -> Response 201 | 4xx | 5xx</code></h5>
+    <br/>
+    <i class="descr">When a new user sign up for new account, this is the view they have to do POST request to.</i>
+    <br/>
+    <br/>
+    
+    <b>Permissions:</b>
+    <kbd>AllowAny</kbd>
+    <br/>
+    <b>Parsers:</b>
+    <kbd>JsonParser</kbd>
+    <br/>
+    <b>Renderers:</b>
+    <kbd>JsonRenderer</kbd>
+    <br/>
+    
+    
+    <b>Steps: </b>
+    <ol>
+        <li><span class="action">@required_params</span><span class="variable"> name, email, phone_no</span></li>
+        <li><span class="action">@check_validity</span> <span class="action">@check_duplicate</span><span class="variable"> name, email, phone_no</span></li>
+        <li><span class="action">@save_to_db</span><span class="variable"> name, email, phone_no</span></li>
+        <li><span class="action">@ok+<code>basic error debug mixin</code></span></li>
+    
+    </ol>
+</div>
+
+<div id="signinbyphone">
+    <p class="view_url">/auth2/signin/phone/</p>
+
+    <h5><b class="method">[POST]</b><b class="app_name">auth2</b><b class="danger">under review</b> SignInByPhoneNo<code>(request) -> Response 200 | 4xx | 5xx</code></h5>
+    <br/>
+    <i class="descr">We try to find phone_no from db, if there send otp to that phone number</i>
+    <br/>
+    <br/>
+    
+    <b>Permissions:</b>
+    <kbd>AllowAny</kbd>
+    <br/>
+    <b>Parsers:</b>
+    <kbd>JsonParser</kbd>
+    <br/>
+    <b>Renderers:</b>
+    <kbd>JsonRenderer</kbd>
+    <br/>
+    
+    
+    <b>Steps: </b>
+    <ol>
+        <li><span class="action">@required_params</span><span class="variable"> phone_no</span></li>
+        <li><span class="action">@check_validity</span> <span class="action">@check_avaiable_in_db</span><span class="variable"> phone_no</span></li>
+        <li><span class="action">@assert_account_association</span><span class="variable"> phone_no</span></li>
+        <li><span class="action">@send_otp</span><span class="variable"> phone_no</span></li>
+        <li><span class="action">@ok+<code>basic error debug mixin</code></span></li>
+    
+    </ol>
+</div>
+
+
+<div id="signinbyemail">
+    <p class="view_url">/auth2/signin/email/</p>
+    <h5><b class="method">[POST]</b><b class="app_name">auth2</b><b class="danger">under review</b> SignInByEmail<code>(request) -> Response 200 | 4xx | 5xx</code></h5>
+    <br/>
+    <i class="descr">We try to find email from db, if there send otp to that Email</i>
+    <br/>
+    <br/>
+    
+    <b>Permissions:</b>
+    <kbd>AllowAny</kbd>
+    <br/>
+    <b>Parsers:</b>
+    <kbd>JsonParser</kbd>
+    <br/>
+    <b>Renderers:</b>
+    <kbd>JsonRenderer</kbd>
+    <br/>
+    
+    
+    <b>Steps: </b>
+    <ol>
+        <li><span class="action">@required_params</span><span class="variable"> email</span></li>
+        <li><span class="action">@check_validity</span> <span class="action">@check_avaiable_in_db</span><span class="variable"> email</span></li>
+        <li><span class="action">@send_otp</span><span class="variable"> email</span></li>
+        <li><span class="action">@ok+<code>basic error debug mixin</code></span></li>
+    
+    </ol>
+</div>
+
+<div id="signinbysocial">
+    <p class="view_url">/auth2/signin/social/</p>
+    <h5><b class="method">[POST]</b><b class="app_name">social_auth</b> SignInBySocial<code>(request) -> Response 201 | 4xx | 5xx</code></h5>
+    <br/>
+    <i class="descr">When a new user sign in using any before linked social account.</i>
+    <br/>
+    <br/>
+    
+    <b>Permissions:</b>
+    <kbd>AllowAny</kbd>
+    <br/>
+    <b>Parsers:</b>
+    <kbd>JsonParser</kbd>
+    <br/>
+    <b>Renderers:</b>
+    <kbd>JsonRenderer</kbd>
+    <br/>
+    <br/>
+    <div class="alert alert-primary d-flex align-items-center" role="alert">
+        <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Info:"><use xlink:href="#info-fill"/></svg>
+        <div>
+          <b>Edge Case: </b>
+          <p>Check first if the signined in social account is in out DB record/username of that social exists or not.</p>
+        </div>
+      </div>
+    <b>Steps: </b>
+    <ol>
+        <li><b class="action">#able_to_work_with_linking_social_media</b></li>
+        <li><b class="action">#able_to_re_link_social_media</b></li>
+        <li><span class="action">@required_tokens</span><span class="variable"> code, state</span></li>
+        <li><span class="action">@decrypt_state</span> <span class="action">@check_state</span><span class="variable"> state</span></li>
+        <li><span class="action">@fetch_access_token</span> <span class="action">@fetch_user_data</span><span class="variable"> code</span></li>
+        <li><span class="action">@assert_user_data_exists_in_db</span><span class="variable"> `user_data.id`</span></li>
+
+        <li><span class="action">@core_self_login</span><span class="action">@get_access_token</span></li>
+        <li><span class="action">@ok+<code>basic error debug mixin</code></span></li>
+    
+    </ol>
+</div>
+
+<div id="userinitialinformation">
+    <p class="view_url">/api/user_initial_info/</p>
+    <h5><b class="method">[GET]</b><b class="app_name">api</b> UserInitialInformation<code>(request) -> Response 200 | 4xx | 5xx</code></h5>
+    <br/>
+    <i class="descr">On app's splash screen this is the first data retrieval will run to poppulate user data to the app.</i>
+    <br/>
+    <br/>
+    
+    <b>Permissions:</b>
+    <kbd>AuthenticatedOnly</kbd>
+    <br/>
+    <b>Parsers:</b>
+    <kbd>No-parsers</kbd>
+    <br/>
+    <b>Renderers:</b>
+    <kbd>JsonRenderer</kbd>
+    <br/>
+
+    <b>Steps: </b>
+    <ol>
+        <li><span class="action">@retrieve_from_db</span><span class="variable"> Profile model</span></li>
+        <li><span class="action">@serialize</span> <span class="variable">Profile Model</span></li>
+        <li><span class="action">@mask_public_id_middleware</span> <span class="variable"> `profile.id`</span></li>
+        <li><span class="action">@ok+<code>basic error debug mixin</code></span></li>
+    
+    </ol>
+</div>
+
+<div id="generatefeed">
+    <p class="view_url">/api/feed/</p>
+    <h5><b class="method">[POST]</b><b class="app_name">api</b> GenerateFeed<code>(request) -> Response 200 | 4xx | 5xx</code></h5>
+    <br/>
+    <i class="descr">Generator behavioured view used to get feed sets each set containing requested number of cards.</i>
+    <br/>
+    <br/>
+    
+    <b>Permissions:</b>
+    <kbd>AuthenticatedOnly</kbd>
+    <kbd>AllowAny</kbd>
+    <br/>
+    <b>Parsers:</b>
+    <kbd>JsonParser</kbd>
+    <br/>
+    <b>Renderers:</b>
+    <kbd>JsonRenderer</kbd>
+    <br/>
+
+    <b>Steps: </b>
+    <ol>
+        <li><span class="action">@assert_recieved_or_assume 0 </span><span class="variable"> counter</span></li>
+        <li><span class="action">@assert_recieved_or_assume 5 </span><span class="variable"> quantity</span></li>
+        <li><span class="action">@predict_cards</span> <span class="variable">Profile Models</span></li>
+        <li><span class="action">@serialize_cards</span> <span class="variable"> list[ProfileCard]</span></li>
+        <li><span class="action">@ok+<code>basic error debug mixin</code></span></li>
+    
+    </ol>
+</div>
+
+<div id="reachprofile">
+    <p class="view_url">/api/reach_out/&lt;profile-id:int&gt;/</p>
+    <h5><b class="method">[GET]</b><b class="app_name">api</b> ReachProfile<code>(request, profile_id) -> Response 201 | 4xx | 5xx</code></h5>
+    <br/>
+    <i class="descr">Action handler for following/reaching out profile.</i>
+    <br/>
+    <br/>
+    
+    <b>Permissions:</b>
+    <kbd>AuthenticatedOnly</kbd>
+    <br/>
+    <b>Parsers:</b>
+    <kbd>No-Parser</kbd>
+    <br/>
+    <b>Renderers:</b>
+    <kbd>JsonRenderer</kbd>
+    <br/>
+
+    <b>Steps: </b>
+    <ol>
+        <li><span class="action">@fetch_from_url</span><span class="variable"> profile_public_id</span></li>
+        <li><span class="action">@unmask_public_id_middleware </span><span class="variable"> profile_id</span></li>
+        <li><span class="action">@get_profile_model</span> <span class="action"><u>(@add_reach or @remove_reach)</u></span> <span class="variable">`request.user`</span></li>
+        <li><span class="action">@ok+<code>basic error debug mixin</code></span></li>
+    
+    </ol>
+</div>
+
+
+<div id="bookmarkprofile">
+    <p class="view_url">/api/bookmark/profile_id:int/</p>
+    <h5><b class="method">[GET]</b><b class="app_name">api</b> BookmarkProfile<code>(request, profile_id) -> Response 201 | 4xx | 5xx</code></h5>
+    <br/>
+    <i class="descr">Action handler for bookmarking out profile.</i>
+    <br/>
+    <br/>
+    
+    <b>Permissions:</b>
+    <kbd>AuthenticatedOnly</kbd>
+    <br/>
+    <b>Parsers:</b>
+    <kbd>No-Parser</kbd>
+    <br/>
+    <b>Renderers:</b>
+    <kbd>JsonRenderer</kbd>
+    <br/>
+
+    <b>Steps: </b>
+    <ol>
+        <li><span class="action">@fetch_from_url</span><span class="variable"> profile_public_id</span></li>
+        <li><span class="action">@unmask_public_id_middleware </span><span class="variable"> profile_id</span></li>
+        <li><span class="action">@get_profile_model</span> <span class="action"><u>(@add_bookmark or @remove_bookmark)</u></span> <span class="variable">`request.user`</span></li>
+        <li><span class="action">@ok+<code>basic error debug mixin</code></span></li>
+    
+    </ol>
+</div>
+
+<div id="reportprofile">
+    <p class="view_url">/api/report/profile/profile_id:int/</p>
+    <h5><b class="method">[GET]</b><b class="app_name">api</b> ReportProfile<code>(request, profile_id) -> Response 201 | 4xx | 5xx</code></h5>
+    <br/>
+    <i class="descr">Action handler for reporting profile.</i>
+    <br/>
+    <br/>
+    
+    <b>Permissions:</b>
+    <kbd>AuthenticatedOnly</kbd>
+    <kbd>AllowAny</kbd>
+    <br/>
+    <b>Parsers:</b>
+    <kbd>No-Parser</kbd>
+    <br/>
+    <b>Renderers:</b>
+    <kbd>JsonRenderer</kbd>
+    <br/>
+
+    <b>Steps: </b>
+    <ol>
+        <li><span class="action">@fetch_from_url</span><span class="variable"> profile_public_id</span></li>
+        <li><span class="action">@unmask_public_id_middleware </span><span class="variable"> profile_id</span></li>
+        <li><span class="action">@get_profile_model_id</span> <span class="action">@create_report_model</span> <span class="action"><u>@link_report_model</u></span> <span class="variable">`request.user`|Anonymous</span></li>
+        <li><span class="action">@ok+<code>basic error debug mixin</code></span></li>
+    
+    </ol>
+</div>
+
+<div id="getprofile">
+    <p class="view_url">/api/profile/profile_id:int/</p>
+    <h5><b class="method">[GET]</b><b class="app_name">api</b> GetProfile<code>(request, profile_id) -> Response 200 | 4xx | 5xx</code></h5>
+    <br/>
+    <i class="descr">Action handler for retrieving full public information of profile.</i>
+    <br/>
+    <br/>
+    
+    <b>Permissions:</b>
+    <kbd>AuthenticatedOnly</kbd>
+    <kbd>AllowAny</kbd>
+    <br/>
+    <b>Parsers:</b>
+    <kbd>No-Parser</kbd>
+    <br/>
+    <b>Renderers:</b>
+    <kbd>JsonRenderer</kbd>
+    <br/>
+
+    <b>Steps: </b>
+    <ol>
+        <li><span class="action">@fetch_from_url</span><span class="variable"> profile_public_id</span></li>
+        <li><span class="action">@unmask_public_id_middleware </span><span class="variable"> profile_id</span></li>
+        <li><span class="action">@get_profile_model</span> <span class="variable">`Profile(profile_id)`</span></li>
+        <li><span class="action">@serialize_profile_model</span> <span class="variable">`Profile(profile_id)`</span></li>
+        <li><span class="action">@ok+<code>basic error debug mixin</code></span></li>
+    
+    </ol>
+</div>
+
+
+<div id="sendotp">
+    <p class="view_url">/auth2/sendotp/mode:str/</p>
+    <h5><b class="method">[POST]</b><b class="app_name">auth2</b> SendOTP<code>(request, mode) -> Response 201 | 4xx | 5xx</code></h5>
+    <br/>
+    <i class="descr">Handles to send the otp to given address n phoneNo. mode or Email mode.</i>
+    <br/>
+    <br/>
+    
+    <b>Permissions:</b>
+    <kbd>AllowAny</kbd>
+    <br/>
+    <b>Parsers:</b>
+    <kbd>JsonParser</kbd>
+    <br/>
+    <b>Renderers:</b>
+    <kbd>JsonRenderer</kbd>
+    <br/>
+
+    <b>Steps: </b>
+    <ol>
+        <li><span class="action">@fetch_from_url</span><span class="variable"> mode=[phone_no | email]</span></li>
+        <li><span class="action">@assert_retrieve_mode_value </span><span class="variable"> modeValue[phone->9510445632]</span></li>
+        <li><span class="action">@send_otp</span> <span class="variable">mode_value</span></li>
+        <li><span class="action">@ok+<code>basic error debug mixin</code></span></li>
+    
+    </ol>
+</div>
+
+<div id="verifyotp">
+    <p class="view_url">/auth2/verifyotp/mode:str/</p>
+
+    <h5><b class="method">[POST]</b><b class="app_name">auth2</b> VerifyOTP<code>(request, mode) -> Response 201 | 4xx | 5xx</code></h5>
+    <br/>
+    <i class="descr">Handles to send the otp to given address n phoneNo. mode or Email mode.</i>
+    <br/>
+    <br/>
+    
+    <b>Permissions:</b>
+    <kbd>AllowAny</kbd>
+    <br/>
+    <b>Parsers:</b>
+    <kbd>JsonParser</kbd>
+    <br/>
+    <b>Renderers:</b>
+    <kbd>JsonRenderer</kbd>
+    <br/>
+
+    <b>Steps: </b>
+    <ol>
+        <li><span class="action">@fetch_from_url</span><span class="variable"> mode=[phone_no | email]</span></li>
+        <li><span class="action">@assert_retrieve_mode_value </span><span class="variable"> modeValue[phone->9510445632]</span></li>
+        <li><span class="action">@assert_retrieve_otp </span><span class="variable"> otp</span></li>
+        <li><span class="action">@assert_match_otp </span><span class="variable"> otp</span></li>
+
+        <li><span class="action">@ok+<code>basic error debug mixin</code></span></li>
+    
+    </ol>
+</div>
+
+<div id="updatepersonalinformation">
+    <p class="view_url">/api/edit_profile/</p>
+
+    <h5><b class="method">[PUT]</b><b class="app_name">api</b> UpdatePersonalInformation<code>(request) -> Response 201 | 4xx | 5xx</code></h5>
+    <br/>
+    <i class="descr">Action handler for updating profile information.</i>
+    <br/>
+    <br/>
+    
+    <b>Permissions:</b>
+    <kbd>AuthenticatedOnly</kbd>
+    <br/>
+    <b>Parsers:</b>
+    <kbd>JsonParser</kbd>
+    <br/>
+    <b>Renderers:</b>
+    <kbd>JsonRenderer</kbd>
+    <br/>
+
+    <b>Steps: </b>
+    <ol>
+        <li><span class="action">@assert_retrieve_name </span> <span class="action">@assert_retrieve_bio </span> <span class="action">@assert_retrieve_profilePicUrl </span><span class="variable"> name, bio, profilePicUrl</span></li>
+        <li><span class="action">@get_Profile_model </span><span class="variable"> `request.user`</span></li>
+        <li><span class="action">@update_info </span><span class="variable"> name, bio, profilePicUrl</span></li>
+
+        <li><span class="action">@ok+<code>basic error debug mixin</code></span></li>
+    
+    </ol>
+</div>
+
+<div id="synccontacts">
+    <p class="view_url">/auth2/sync_contacts/</p>
+
+    <h5><b class="method">[POST]</b><b class="app_name">auth2</b> SyncContacts<code>(request) -> Response 201 | 4xx | 5xx</code></h5>
+    <br/>
+    <i class="descr">Action handler for syncing Contacts infomation to the profile.</i>
+    <br/>
+    <br/>
+    
+    <b>Permissions:</b>
+    <kbd>AuthenticatedOnly</kbd>
+    <br/>
+    <b>Parsers:</b>
+    <kbd>JsonParser</kbd>
+    <br/>
+    <b>Renderers:</b>
+    <kbd>JsonRenderer</kbd>
+    <br/>
+
+    <b>Steps: </b>
+    <ol>
+        <li><span class="action">@assert_retrieve_contacts </span><span class="variable"> contacts</span></li>
+        <li><span class="action">@sync_to_db </span><span class="variable"> contacts</span></li>
+
+        <li><span class="action">@ok+<code>basic error debug mixin</code></span></li>
+    
+    </ol>
+</div>
+
+<div id="getusersocialprofilepics">
+    <p class="view_url">/api/user/social/profile_pics</p>
+
+    <h5><b class="method">[GET]</b><b class="app_name">api</b> UserSocialProfilePics<code>(request) -> Response 200 | 4xx | 5xx</code></h5>
+    <br/>
+    <i class="descr">Rertrives all linked social media's profile pics for the user.</i>
+    <br/>
+    <br/>
+    
+    <b>Permissions:</b>
+    <kbd>AuthenticatedOnly</kbd>
+    <br/>
+    <b>Parsers:</b>
+    <kbd>JsonParser</kbd>
+    <br/>
+    <b>Renderers:</b>
+    <kbd>JsonRenderer</kbd>
+    <br/>
+
+    <b>Steps: </b>
+    <ol>
+        <li><span class="action">@retrieve_from_db </span><span class="variable"> User > Social Medias</span></li>
+        <li><span class="action">@get_field </span><span class="variable"> profile_pic (secondary)</span></li>
+
+        <li><span class="action">@ok+<code>basic error debug mixin</code></span></li>
+    
+    </ol>
+</div>
+
+<div id="getusersocialprofilepics">
+    <p class="view_url">/api/user/profile_pic</p>
+
+    <h5><b class="method">[PUT]</b><b class="app_name">api</b> UserProfilePic<code>(request) -> Response 201 | 4xx | 5xx</code></h5>
+    <br/>
+    <i class="descr">Updates User's profile pic most specifically by URL;with data in worst/rare case (if uploaded)</i>
+    <br/>
+    <br/>
+    
+    <b>Permissions:</b>
+    <kbd>AuthenticatedOnly</kbd>
+    <br/>
+    <b>Parsers:</b>
+    <kbd>JsonParser</kbd>
+    <kbd>MultipartParser</kbd>
+    <kbd>FormParser</kbd>
+    <br/>
+    <b>Renderers:</b>
+    <kbd>JsonRenderer</kbd>
+    <br/>
+
+    <b>Steps: </b>
+    <ol>
+        <li><span class="action">@retrieve_from_db </span><span class="variable"> User</span></li>
+        <li><span class="action">@update_field </span><span class="variable"> profile_pic </span></li>
+
+        <li><span class="action">@ok+<code>basic error debug mixin</code></span></li>
+    
+    </ol>
+</div>
+
+
+</div>
+
+<script>
+    let search = document.getElementById('docs_search');
+    let docs_container = document.getElementById('views_container');
+    window.addEventListener('keyup', (e) => {
+        if(e.key == '/'){
+            search.focus();
+        }
+    })
+    let docs_views = [...docs_container.children];
+    search.addEventListener('keyup', (e) => {
+        for(const doc_view of docs_views){
+            if(match_query(doc_view.id, search.value.toLowerCase())){
+                doc_view.style.display = '';
+            }else{
+                doc_view.style.display = 'none';
+
+            }
+        }
+    })
+
+    function match_query(title, query){
+        // returns true | false
+        let having = true;
+        for(const query_ch of query){
+            if(!title.includes(query_ch)){
+                having = false;
+                break;
+            }
+        }
+        return having;
+    }
+</script>
+{% endblock content %}

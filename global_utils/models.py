@@ -1,0 +1,3 @@
+
+class NotProvided(object):
+    pass
