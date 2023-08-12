@@ -13,7 +13,7 @@ from django.conf import settings
 from re import match
 path.append(getcwd())
 
-from constants import SOCIAL_PROFILE_LINK_PREFFIXES, USERNAME_REGEX,EMAIL_REGEX, PHONE_REGEX, BACKEND_ROOT_URL
+from constants import PROFILE_PREFERENCES_CONFIG, USERNAME_REGEX,EMAIL_REGEX, PHONE_REGEX, BACKEND_ROOT_URL
 
 
 class Social(models.Model):
@@ -42,6 +42,7 @@ class Social(models.Model):
     profile_link = models.URLField(max_length=150, null=True, blank=True)
     profilePicUrl = models.CharField(max_length=500,null=True, blank=True) # Secondary
     name = models.CharField(max_length=100) # Primary
+    last_updated = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
     @property
     def safe_avatar(self):
@@ -78,6 +79,7 @@ class Profile(AbstractUser):
     # @phone returns `Phone` instance 
     # @analytics returns `AnalyticProfile` instance 
     # @socials returns `Social`s
+    # @prefs returns `Preference`
     # NOTE: by setting, raw_ip property, it'll update position on ProfilePoint 
 
     '''
@@ -113,10 +115,13 @@ class Profile(AbstractUser):
     bio = models.CharField(max_length=100, unique=False, null=True, blank=True)
     profilePicUrl = models.CharField(max_length=150,unique=False, null=True, blank=True) #null means AnonymousProfilePic
     synced_contacts = models.BooleanField(default=False)
-    reachers = models.ManyToManyField('Profile', blank=True)
+    reachers = models.ManyToManyField('Profile', blank=True, related_name='reached_profiles')
     marks = models.ManyToManyField('Profile', blank=True, related_name='marked_by')
     analysis_unlocked_at = models.DateTimeField(blank=True, null=True) # SubscriptionBoughtAt
     analysis_unlock_duration = models.PositiveSmallIntegerField(blank=True, default=21) # NumberInDays
+
+    last_seen = models.DateTimeField(null=True, blank=True)
+
 
     @property
     def has_analysis_unlocked(self) -> None:
@@ -216,7 +221,6 @@ class Profile(AbstractUser):
 
         if(not self.is_staff):
             return True
-
         from hashlib import sha512
         m = sha512()
         m.update(bytes(self.username,'utf-8'))
@@ -227,8 +231,10 @@ class Profile(AbstractUser):
 class ProfilePoint(models.Model):
 
     # @analytics returns parent `AnalyticProfile` 
+    # @viewed returns QuerySet of Analyticprofile(s) which .profile has viewed
     profile = models.OneToOneField(Profile, on_delete=models.PROTECT, related_name='point')
     ip = models.GenericIPAddressField()
+    city = models.CharField(max_length=100, null=True, blank=True)
     updated_at = models.DateField(auto_now=True)
 
     # make a property, activeness: range from 1 to 5
@@ -250,15 +256,36 @@ class AnalyticProfile(models.Model):
     reports_timestamps = ArrayField(models.DateTimeField(), default=list, null=True, blank=True)
 
     
+def validate_notifications(val:dict):
+    if(type(val) != 'dict'):
+        raise ValidationError(
+            _("%(value)s isn't a dict instance."),
+            params={"value": val},
+        )
+    for key in PROFILE_PREFERENCES_CONFIG['NOTIFICATIONS']['REQUIRED_KEYS']:
+        if(key not in val.keys()):
+            raise ValidationError(
+                _("%(value)s, a required key isn't mentioned/included."),
+                params={"value": key},
+            )    
+
+class Preference(models.Model):
+
+    profile = models.OneToOneField(Profile, on_delete=models.CASCADE, related_name='prefs')
+    notifications = models.JSONField(default=PROFILE_PREFERENCES_CONFIG['NOTIFICATIONS']['DEFAULT'],validators=[validate_notifications])
+    
+    # In future, its easy to add other pref(s) here in this model
+    # Ex.. email-pref(s)
+
 class Phone(models.Model):
 
     # @contact_in returns which AnalyticProfile has added this instance to it!
     # if target_profile points to null value, means this number is of unIdentified user (AnonymousUser)
     target_profile = models.OneToOneField(Profile, on_delete=models.PROTECT, related_name='phone', null=True, blank=True, editable=True)
     raw_name = models.CharField(max_length=50, null=True, blank=True)
-    number = models.CharField(max_length=15, validators=[RegexValidator(
+    number = models.CharField(max_length=16, validators=[RegexValidator(
                         regex = PHONE_REGEX,
-                        message = 'Email must has to be valid.',
+                        message = 'Phone number must be valid.',
                         code='invalid_phone'
                     )],
         error_messages={

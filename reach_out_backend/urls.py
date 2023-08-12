@@ -24,7 +24,7 @@ urlpatterns = [
     path('auth2/', include('auth2.urls')),
     path('api/', include('api.urls')),
     path('payment/', include('payment.urls')),
-    path('', include('gui.urls')),
+    path('', include('staff.urls')),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)

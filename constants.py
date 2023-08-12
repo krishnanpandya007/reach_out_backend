@@ -1,6 +1,6 @@
 import os 
 
-BACKEND_ROOT_URL = "http://192.168.165.153:8000"
+BACKEND_ROOT_URL = "http://192.168.32.153:8000"
 
 SOCIAL_PROFILE_LINK_PREFFIXES = {
     'Instagram': 'https://www.instagram.com/',
@@ -17,11 +17,11 @@ SOCIAL_OAUTH_LINKS = {
     'Snapchat': 'https://accounts.snapchat.com/accounts/oauth2/auth?client_id=cc0ab0b7-82d4-446e-bf54-9c86603c4a79&redirect_uri=https%3A%2F%2Freachout.org.in%2Fauth%2Fredirect&response_type=code&scope=https://auth.snapchat.com/oauth2/api/user.display_name https://auth.snapchat.com/oauth2/api/user.external_id https://auth.snapchat.com/oauth2/api/user.bitmoji.avatar',
     'Facebook': 'https://www.facebook.com/dialog/oauth?app_id=529831602511861&redirect_uri=https%3A%2F%2Freachout.org.in%2Fauth%2Fredirect%2F',
     # [NOTE, TODO]: when server is up on domain, check LinkedIn URL
-    'LinkedIn': 'https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=77jn18bchr2v1y&scope=r_liteprofile&redirect_uri=https%3A%2F%2Freachout.org.in%2Fauth%2Fredirect%2F',
+    'LinkedIn': 'https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=77x6yldk1f19e2&scope=r_liteprofile&redirect_uri=https%3A%2F%2Freachout.org.in%2Fauth%2Fredirect%2F',
     'Reddit': 'https://www.reddit.com/api/v1/authorize?client_id=sSPxMYHlFoqrn5flh0MNsw&response_type=code&redirect_uri=https%3A%2F%2Freachout.org.in%2Fauth%2Fredirect%2F&scope=identity&duration=permanent',
     'Discord': 'https://discord.com/oauth2/authorize?response_type=code&client_id=1059894751773597727&scope=identify&redirect_uri=https%3A%2F%2Freachout.org.in%2Fauth%2Fredirect%2F&prompt=consent'
 }
-
+# If change available in any of above or below data, please consider other-one also
 OAUTH_CONFIGS = {
 
     'Discord': {
@@ -54,18 +54,23 @@ OAUTH_CONFIGS = {
         'client_id': "529831602511861",
         'client_secret': "607b4e44150b8ac1df58aee9806cc9b5",
         'refresh_access_token_endpoint':"https://www.linkedin.com/oauth/v2/accessToken",
+        'redirect_uri': 'https://reachout.org.in/auth/redirect/',
+
         'access_retrieval_endpoint': "https://graph.facebook.com/oauth/access_token",
         'info_retrieval_endpoint': "https://graph.facebook.com/me?fields=id,name,picture&access_token=%s" #Remaining
     },
 
     'Snapchat': {
         # 'client_id': "56055847-1477-4ac7-a17a-507c322d89d1",
-        'client_id': "cc0ab0b7-82d4-446e-bf54-9c86603c4a79",
-        # 'client_secret': "UAI7kDuYEnesoVpCMt_u3UbxbqKEmvhOpTLf1hIaB8Y",
-        'client_secret': "edpSqP3fUWObrAy_pez7VMQaIAIoRgJkx4YdX3ls4NU",
+        'client_id': "2656b7f0-d322-4907-ac83-6738465fb45c",
+        # 'client_id': "cc0ab0b7-82d4-446e-bf54-9c86603c4a79",
+        'client_secret': "lXn54GXRhST2e6XejKUcxbol3_70SKtEFa1pFSBIcyk",
+        # 'client_secret': "edpSqP3fUWObrAy_pez7VMQaIAIoRgJkx4YdX3ls4NU",
         'access_retrieval_endpoint': "https://accounts.snapchat.com/accounts/oauth2/token",
         'refresh_access_token_endpoint':"https://accounts.snapchat.com/accounts/oauth2/token",
-        'info_retrieval_endpoint': "https://kit.snapchat.com/v1/me"
+        'info_retrieval_endpoint': "https://kit.snapchat.com/v1/me",
+        'redirect_uri': 'https://reachout.org.in/auth/redirect'
+
     },
 
     'Reddit': {
@@ -73,13 +78,14 @@ OAUTH_CONFIGS = {
         'client_secret': 'Wkc7I42bpRTV3eLOHI7HnmXXtFCzMw',
         'access_retrieval_endpoint': 'https://www.reddit.com/api/v1/access_token',
         'refresh_access_token_endpoint': "https://www.reddit.com/api/v1/access_token",
-        'info_retrieval_endpoint': "https://oauth.reddit.com/api/v1/me"
+        'info_retrieval_endpoint': "https://oauth.reddit.com/api/v1/me",
+        'redirect_uri': 'https://reachout.org.in/auth/redirect/'
     },
 
     'LinkedIn': {
-        'client_id': '77jn18bchr2v1y',
-        'client_secret': 'tHvyJMFNlNzQFgWs',
-        'redirect_uri': 'https://www.google.com/',
+        'client_id': '77x6yldk1f19e2',
+        'client_secret': '0oaFTFhoeQGfiXjC',
+        'redirect_uri': 'https://reachout.org.in/auth/redirect/',
         'access_retrieval_endpoint': 'https://www.linkedin.com/oauth/v2/accessToken',
         'refresh_access_token_endpoint':"https://www.linkedin.com/oauth/v2/accessToken",
         'info_retrieval_endpoint': 'https://api.linkedin.com/v2/me?projection=(id,firstName,lastName,profilePicture(displayImage~:playableStreams))'
@@ -109,11 +115,28 @@ SOCIAL_MEDIAS = SOCIAL_PROFILE_LINK_PREFFIXES.keys()
 
 SOCIAL_INFO_FETCHER_BOT_NAME = "ReachOut InfoFetcher 1.0"
 
+# Every after $SOCIAL_THRESHOLD_UPDATE_DURATION time, social profilePics need to be udpated
+SOCIAL_THRESHOLD_UPDATE_DURATION = {
+    'weeks': 4
+}
+
 PROFILE_PIC_BASE_PATH = os.path.join('media', 'images', 'profile_pics')
+
+PROFILE_PREFERENCES_CONFIG = {
+    'NOTIFICATIONS': {
+        'REQUIRED_KEYS': ['new_follower', 'social_tap', 'general'],
+        'DEFAULT': {'new_follower': True, 'social_tap': True, 'general': True, 'fcm_token': None}
+    },
+}
+
+DEFAULT_CLIENT_COUNTRY_CODE = '+91'
+
 
 CACHE_TYPES_LIFETIME = {
     'OTP': 60*5, # identifier: OTP:email/phone
     'WEB_SIGNIN_CODE': 60*2, # identifier: WEB_SIGNIN_CODE:profile_id
+    'SLOWDOWN_FOLLOWER': 70, # identifier: SLOWDOWN_FOLLOWER:profile_id -> Slowdown sending notification
+    'SLOWDOWN_SOCIAL_TAP': 60*60*2, # identifier: SLOWDOWN_FOLLOWER:profile_id -> Slowdown sending notification for 2H 
 } 
 
 OAUTH_CORE_CLIENT_ID = os.getenv('OAUTH_CORE_CLIENT_ID', 'wLePfApqei6CzBbvBqgHiuyYOmj6JpjSEWrVTuSt')
@@ -153,6 +176,21 @@ ANALYTICS = {
 }
 
 IPINFO_TOKEN = os.getenv("IPINFO_TOKEN", "c48d9147f45dc8")
+
+
+
+ACTIVE_USER_TIMEOUT = 100 # After 100s user being moved to recently active and from there -> in-active
+RECENTLY_ACTIVE_USER_TIMEOUT = 300
+
+CONSTRAINT_CLEANUP_THRESHOLDS_WEEKLY = {
+    'ACTIVE_USER': 4,
+    'RECENTLY_ACTIVE_USER': 4,
+}
+
+SEARCH_PAGE_SIZE = 100 # At a time user can only have 100 related users
+'''
+Maybe we can decrease the batch size to make a race among user for their profile rating
+'''
 
 UPLOAD_FILE_KEYS_WHITELIST = ['images:profile_pic'] # In future, Contact-Us form's key can be added
 # type:key_name

@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from auth2.models import Profile, ProfilePoint, AnalyticProfile
+from auth2.models import Profile, ProfilePoint, AnalyticProfile, Preference
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,11 +28,9 @@ def init_sub_models_on_profile_save(sender, instance, created, **kwargs):
     _point:ProfilePoint = None
 
     try:
-        print(hasattr(instance, 'raw_ip'))
-
         if(hasattr(instance, 'raw_ip')):
 
-            point, point_created = ProfilePoint.objects.get_or_create(profile=instance, defaults={'ip': instance.raw_ip})
+            point, _ = ProfilePoint.objects.get_or_create(profile=instance, defaults={'ip': instance.raw_ip})
             point.save()
 
             _point = point
@@ -40,7 +38,6 @@ def init_sub_models_on_profile_save(sender, instance, created, **kwargs):
         logger.warning('Unable to update IP for profile', e)
     '''
     3. Create AnalyticProfile
-    print('Here')
     '''
     
     if(created):
@@ -52,6 +49,14 @@ def init_sub_models_on_profile_save(sender, instance, created, **kwargs):
 
         except Exception as e:
             logger.warning('Unable to create/update AnalyticProfile', e)
+
+
+    '''
+    4. Create preferences model
+    '''
+
+    if(created):
+        Preference.objects.create(profile=instance)
     
 
 

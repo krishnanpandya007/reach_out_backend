@@ -23,17 +23,21 @@ import sys, os
 if(settings.BASE_DIR not in sys.path): sys.path.append(settings.BASE_DIR)
 
 from .predictor import predict_standard_posts, predict_engage_posts 
-from auth2.models import Profile, Phone, AnalyticProfile, Social
+from auth2.models import Profile, Phone, AnalyticProfile, Social, Preference
 from api.models import Recommendation
 from global_utils.models import NotProvided
-from auth2.serializers import ProfilePageSerializer, ProfileSerializer
-from constants import UPLOAD_FILE_KEYS_WHITELIST, SOCIAL_MEDIAS, IPINFO_TOKEN, ANALYTICS
-from global_utils.functions import get_client_ip, format_phone_number, get_ip_info, parse_lat_lon_of_ips
+from auth2.serializers import ProfilePageSerializer, ProfileSerializer, ProfilePreferencesSerializer
+from constants import UPLOAD_FILE_KEYS_WHITELIST, DEFAULT_CLIENT_COUNTRY_CODE, SOCIAL_THRESHOLD_UPDATE_DURATION, PROFILE_PREFERENCES_CONFIG, SOCIAL_MEDIAS, IPINFO_TOKEN, BACKEND_ROOT_URL, ANALYTICS, SEARCH_PAGE_SIZE
+from global_utils.functions import get_client_ip, format_phone_number, remove_filename_extention, get_ip_info, parse_data_from_ips
 from global_utils.decorators import memcache
 from scripts.credentials_fetcher import get_social_access_token, get_social_user_data
 from django.db.models.functions import Now
 from django.utils import timezone
 from django.db import transaction
+from django.contrib.postgres.search import TrigramSimilarity
+from .task import handle_follower_notification, handle_social_tap_notification
+from reach_out_backend.settings import executor
+
 
 from yake import KeywordExtractor
 language = "en"
@@ -41,8 +45,9 @@ max_ngram_size = 1
 deduplication_threshold = 0.9
 numOfKeywords = 5 # Will generate max 5 tags for each profile
 custom_kw_extractor = KeywordExtractor(lan=language, n=max_ngram_size, dedupLim=deduplication_threshold, top=numOfKeywords, features=None)
+
 geolocator = Nominatim(user_agent="reach_out")
-print("Boom")
+
 class ProfileView(APIView):
 
     permission_classes = (IsAuthenticated,)
@@ -52,6 +57,7 @@ class ProfileView(APIView):
         try:
 
             profile = request.user
+            print('Getting:', profile.safe_profile_pic_url)
 
             info = {
                 'profileId': profile.pk,
@@ -61,8 +67,7 @@ class ProfileView(APIView):
                 'touch_ups': profile.touch_ups
             }
 
-            profile.raw_ip = get_client_ip(request)
-            profile.save()
+            # profile.raw_ip = get_client_ip(request)
 
             return Response({'error': False, 'message': 'Profile Info retrieved!', **info}, status=200)
 
@@ -84,40 +89,53 @@ class ProfileView(APIView):
             bio = request.data.get('bio', NotProvided)
 
             assert not (isinstance(profile_pic_url, NotProvided) and isinstance(name, NotProvided) and isinstance(bio, NotProvided)), "Provide fields to update"
-            assert (name.count(' ') == 1 if not isinstance(name, NotProvided) else True), "Provide valid name"
+            assert (name.count(' ') == 1 if isinstance(name, str) else True), "Provide valid name"
 
             profile:Profile = request.user
+            print('aa')
 
-            if(not isinstance(profile_pic_url, NotProvided)):
-
+            if(isinstance(profile_pic_url, str)):
+                '''
+                RESUME:
+                '''
+                profile_pic_url = profile_pic_url.replace(BACKEND_ROOT_URL, '')
                 if(profile_pic_url.startswith(settings.MEDIA_URL)):
+                    print('aaa')
                     # It is uploaded file
                     try:
 
                         new_profile_pic_url = profile_pic_url.replace('uploads', 'profile_pics').replace('profile_pic__', '').split('?')[0]
-                        abs_path = os.path.join(settings.BASE_DIR, *(profile_pic_url.split('?')[0]).split('/'))
+                        abs_path = os.path.join(settings.BASE_DIR.resolve().as_posix(), *(profile_pic_url.split('?')[0]).split('/'))
                         try:
 
                             # CleanUp files with same aliases
-                            match_files = glob(os.path.join(settings.BASE_DIR, new_profile_pic_url) + '%s.*' % (sha256(bytes(str(profile.pk), 'utf-8')).hexdigest()))
+                            match_files = glob(os.path.join(settings.BASE_DIR.resolve().as_posix(), remove_filename_extention(new_profile_pic_url) + '.*'))
+                            print('matching_files:', match_files)
+                            print(settings.BASE_DIR.resolve().as_posix() / (remove_filename_extention(new_profile_pic_url) + '.*'))
                             for target_file in match_files: os.remove(target_file)
                         except Exception as e:
                             print('Flck:WasteManagement Failed:', e)
                             pass
 
                         shutil_move(abs_path, abs_path.replace('uploads', 'profile_pics').replace('profile_pic__', ''))
+                        print('if::', new_profile_pic_url)
                         profile.profilePicUrl = new_profile_pic_url
                         # After this time to clear up profile_pics stales
                     except Exception as e:
                         print("ASD", e)
                         return Response({'error': False, 'message': 'Error while updating profilePicUrl'},status=500)
+                else:
+                    # TODO: Anyhow verify the domains of imgURL within whitelisted socials
+                    new_profile_pic_url = profile_pic_url.replace('uploads', 'profile_pics').replace('profile_pic__', '').split('?')[0]
+                    print('else:', new_profile_pic_url, profile_pic_url)
+                    profile.profilePicUrl = new_profile_pic_url
 
-            if(not isinstance(name, NotProvided)):
+            if(isinstance(name, str)):
                 f_name, l_name = name.split(' ') if isinstance(name, str) else [None, None]
                 profile.first_name = f_name
                 profile.last_name = l_name
 
-            if(not isinstance(bio, NotProvided)):
+            if(isinstance(bio, str)):
                 profile.bio = bio
                 # Now we'll add predicted tags for given BIO, sync with DB
                 if(isinstance(bio, str) and bio.count(' ') >= 3):
@@ -126,8 +144,8 @@ class ProfileView(APIView):
                     analytics_obj.predicted_tags = keywords
                     analytics_obj.save()
 
-            profile.raw_ip = get_client_ip(request)
-
+            # profile.raw_ip = get_client_ip(request)
+            print('final:', profile.safe_profile_pic_url)
             updated_data = {
                 'name': profile.get_full_name(),
                 'bio': profile.bio,
@@ -158,8 +176,10 @@ class ProfileView(APIView):
 
             profile:Profile = request.user
 
-            profile.raw_ip = get_client_ip(request)
+            # profile.raw_ip = get_client_ip(request)
             profile.save()
+
+            assert False, "Currently, it's disabled to remove your profile."
 
             profile.delete()
 
@@ -202,6 +222,7 @@ class ProfilePageView(APIView):
                     analytics.save()
 
             serializer = ProfilePageSerializer(profile, many=False)
+            print('aah:', serializer.data)
 
             return Response({'error': False, 'message': 'Profile Page retrieved!', **serializer.data}, status=200)            
             
@@ -282,6 +303,7 @@ class UploadFileView(APIView):
             fil = open(upload_path, 'wb')
             fil.write(upload_file.read())
             fil.close()
+            # print('Before')
 
             return Response({'error': False, 'message': 'File Uploaded!', 'upload_path': '/' + relative_path.replace('\\', '/')}, status=201)
 
@@ -378,6 +400,29 @@ class FeedView(APIView):
                 logging.info(f"{self.__class__.__name__}:[OUTER_EXC]:", e)
                 return Response({'error': True, 'message': 'Something went wrong!'},status=500)
         
+@api_view(['POST'])
+@permission_classes([IsAuthenticated,])
+def subscribe_notifications(request):
+    try:
+
+        fcm_token = request.data.get('fcm_token', None)
+
+        assert isinstance(fcm_token, str), "Fcm token has to be `str` instance"
+
+        preference = request.user.prefs
+
+        preference.notifications['fcm_token'] = fcm_token
+
+        preference.save()
+
+        return Response({'error': False, 'message': 'Subscribe from this device'},status=200)
+    
+    except AssertionError as ae:
+        return Response({'error': True, 'message': str(ae)},status=400)
+
+    except Exception:
+        return Response({'error': True, 'message': 'Something went wrong 😔'},status=500) 
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated,])
 def report_profile(request, *args, **kwargs):
@@ -438,7 +483,7 @@ def bookmark_profile(request, *args, **kwargs):
     try:
 
         target_profile_id = kwargs.get('target_profile_id', -1)
-        assert_action = request.GET.get('assert_action', None) # reach/un-reach
+        assert_action = request.GET.get('assert_action', None) # mark/un-mark
 
         assert target_profile_id > 0, "profile Id must be positive valid integer"
         assert assert_action in ['mark', 'un-mark', None], 'Invalid `assert_acton` param' 
@@ -500,6 +545,16 @@ def reach_profile(request, *args, **kwargs):
         else:
             if(assert_action == 'un-reach'): return Response({'error': False, 'message': 'removed Reach!'}, status=200)
             target_profile.reachers.add(profile)
+            
+            try:
+
+                executor.submit(handle_follower_notification, target_profile, target_uid=target_profile_id, reacher_uid=profile.pk, reacher_name=profile.get_full_name())
+
+            except Exception as e:
+
+                logging.error(f"{self.__class__.__name__}:[OUTER_EXC][HANDLING_NOTIFICATION]:", e)
+                pass
+
             return Response({'error': False, 'message': 'Profile Reached!'}, status=201)        
 
 
@@ -521,59 +576,145 @@ def social_profile_pics(request, *args, **kwargs):
 
         profile = request.user
 
-        socials = profile.socials.all()
+        '''
+        Update the stale profilePicUrl(s) which may stopped working
+        '''
+        print('Aha::')
+
+        target_social_medias = list(profile.socials.all())
+        # for social in target_social_medias:
+
+        #     if(social.last_updated == None or social.last_updated < timezone.now() - timezone.timedelta(**SOCIAL_THRESHOLD_UPDATE_DURATION)):
+
+        #         if(social in ['Facebook', 'Instagram']):
+        #             '''
+        #             Meta companies uses rotative profile_pic_url(s)
+        #             which refreshes every n interval, at the result its impossible to store that img
+        #             '''
+        #             res = get_social_user_data(social.socialMedia, social.access_token, rotate_token=social.rotate_token, sync_model=social)
+        #             if(res['error'] == False):
+        #                 # Update last_updated
+        #                 social.last_updated = timezone.now()
+        #                 social.save()
+        #             else:
+        #                 # Something error occured while syncing data
+        #                 social.relogin_required = True
+        #                 target_social_medias.remove(social)
+        #                 social.save()
+                    
+        #                 print(social.rotate_token, social.access_token)
+        #                 # Something went wrong so we can't send half updated, half stale data
+        #                 # So deprecating both and handling as an error occured
+        #                 return Response({'error': True, 'message': 'Something went wrong!'},status=500)
 
         media_to_avatars = dict()
 
-        for social in list(socials):
+        for social in list(target_social_medias):
 
             media_to_avatars[social.socialMedia] = social.safe_avatar
 
         return Response({'error': False, 'message': 'linked social avatars retrieved', 'profilePics': media_to_avatars}, status=200)
 
-    except Exception:
-        return Response({'error': True, 'message': 'Something went wrong!'},status=500)
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated,])
-def sync_contacts(request, *args, **kwargs):
-    try:
-        contacts:dict = request.data
-        from country_code_to_country_numbers import codes
-        ip_info = get_ip_info(get_client_ip(request), IPINFO_TOKEN)
-        if(ip_info):
-            client_country_calling_code = "+" + codes[ip_info['country']]
-        else:
-            client_country_calling_code = "+91"
-
-        # Add countrycode to non country codes
-        batch_size = 100
-        contact_entries = list()
-        
-        for contact_raw_name, contact_number in contacts.items():
-
-            contact_entries.append(Phone(number=format_phone_number(contact_number, client_country_calling_code), raw_name=contact_raw_name))
-
-        profile = request.user
-        analytics = profile.analytics
-        while True:
-            batch = list(islice(contact_entries, batch_size))
-            if not batch:
-                break
-            objs = Phone.objects.bulk_create(batch, batch_size)
-
-            analytics.contacts.add(*objs)
-
-        analytics.save()
-
-        return Response({'error': False, 'message': "Contacts synced!"}, status=200)
-
-    except AssertionError as ae:
-        return Response({'error': True, 'message': str(ae)},status=400)
-
     except Exception as e:
         print(e)
         return Response({'error': True, 'message': 'Something went wrong!'},status=500)
+
+class ContactsView(APIView):
+
+    '''
+    On-[GET]: if (contacts_synced) ? shows un-followed profiles to the user from contacts.
+    On-[POST]: sync(s) contacts of that user.
+    '''
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+
+        try:
+
+            profiles:list = []
+
+            profile = request.user
+
+            # First check if contacts are synced or not
+            assert profile.synced_contacts, "First sync the contacts!"
+
+            # Filter contacts which is not reached by user
+            contacts_profiles = Profile.objects.filter(analytics__contacts__target_profile__isnull=False)
+            reached_profiles = [p.pk for p in list(profile.reached_profiles.all())]
+
+            for contact_profile in list(contacts_profiles):
+                if not (contact_profile.pk in reached_profiles):
+                    profiles.append({'profile_id': contact_profile.pk, 'profile_name': contact_profile.get_full_name(), 'profile_pic_url': contact_profile.safe_profile_pic_url, 'phone_no': contact_profile.phone.number})
+
+            return Response({'error': False, 'message': 'Contact\'s profiles are retrieved successfully!', 'contact_profiles': profiles}, status=200)
+
+        except AssertionError as ae:
+            print('ae')
+            print(ae)
+
+            return Response({'error': True, 'message': str(ae)},status=400)
+
+        except Exception as e:
+            print('ae')
+            print(e)
+            return Response({'error': True, 'message': 'Something went wrong!'},status=500)
+
+
+            
+
+    def put(self, request, *args, **kwargs):
+
+        try:
+            contacts:dict = request.data
+
+            batch_size = 100
+            contact_entries = list()
+            
+            for contact_raw_name, contact_number in contacts.items():
+                formatted_number = format_phone_number(contact_number)
+                if(not Phone.objects.filter(number=formatted_number).exists() and ()):
+                    contact_entries.append(Phone(number=formatted_number, raw_name=contact_raw_name))
+
+            # Sorting phones
+            contact_entries.sort(key=lambda number_obj: number_obj.number)
+
+            # Removing duplicates
+            for contact_entry_idx in range(len(contact_entries)):
+                if(contact_entry_idx > 0):
+                    # check for prev. elemnt; if same ignore
+                    if(contact_entries[contact_entry_idx] == contact_entries[contact_entry_idx - 1]):
+                        # remove it
+                        contact_entries.remove(contact_entries[contact_entry_idx])
+
+            print('Now Entries: ', contact_entries)
+
+            profile = request.user
+            analytics = profile.analytics
+            while True:
+
+                batch = list(islice(contact_entries, batch_size))
+
+                if not batch:
+                    break
+
+                objs = Phone.objects.bulk_create(batch, batch_size)
+                analytics.contacts.add(*objs)
+
+            profile.synced_contacts = True
+            profile.save()
+
+            analytics.save()
+
+            return Response({'error': False, 'message': "Contacts synced!"}, status=201)
+
+        except AssertionError as ae:
+            return Response({'error': True, 'message': str(ae)},status=400)
+
+        except Exception as e:
+            print("EDDD")
+            print(e)
+            return Response({'error': True, 'message': 'Something went wrong!'},status=500)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated,])
@@ -583,6 +724,7 @@ def social_hit_log(request):
 
         target_profile_id = request.data.get('tp_id')
         target_socialMedia = request.data.get('ts_label')
+        silent = request.data.get('silent', False)
 
         assert target_socialMedia in SOCIAL_MEDIAS, "invalid Media"
         assert isinstance(target_profile_id, int), "Invalid tp_id"
@@ -596,6 +738,17 @@ def social_hit_log(request):
         if(user_point):
             social.hits.add(user_point)
             social.save()
+
+        if(silent != 'true'):
+
+            try:
+
+                executor.submit(handle_social_tap_notification, target_profile, target_uid=target_profile_id, tapper_uid=request.user.pk, tapper_name=request.user.get_full_name(), social_platform=target_socialMedia)
+
+            except Exception as e:
+
+                logging.error(f"[OUTER_EXC][HANDLING_NOTIFICATION]:", e)
+                pass
 
         return Response({'error': False, 'message': 'Logged'}, status=201)
 
@@ -638,10 +791,10 @@ class SocialView(APIView):
         try:
 
             platform = request.GET.get('platform', None)
-            
+            print(request.user.pk)
             assert platform in SOCIAL_MEDIAS, "Invalid social media"
             target_social_media = request.user.socials.filter(socialMedia=platform)
-            assert target_social_media.exists(), f"{platform} social not linked to your profile"
+            assert target_social_media.exists(), f"{platform} social handle not linked to your profile"
             target_social_media = target_social_media.first()
             res = get_social_user_data(platform, target_social_media.access_token, rotate_token=target_social_media.rotate_token, sync_model=target_social_media)
 
@@ -658,6 +811,57 @@ class SocialView(APIView):
 
         except Exception as e:
             print("Aram se ono", e)
+            return Response({'error': True, 'message': 'Something went wrong!'},status=500)
+
+class PreferencesView(APIView):
+
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+
+        try:
+
+            profile = request.user
+
+            pref = Preference.objects.get(profile=profile)
+
+            pref_serializer = ProfilePreferencesSerializer(pref)
+
+            return Response({'error': False, 'message': 'Retrieved social status!', 'prefs': pref_serializer.data}, status=200)
+
+        except AssertionError as ae:
+            print('ahaha', ae)
+            return Response({'error': True, 'message': str(ae)},status=400)
+
+        except Exception as e:
+            print('Something Error:', e)
+            return Response({'error': True, 'message': 'Something went wrong!'},status=500)
+
+    def put(self, request):
+
+        try:
+
+            preference_name = request.data.get('preference_name', None)
+
+            assert preference_name.upper() in PROFILE_PREFERENCES_CONFIG.keys(), "Invalid preference"
+
+            new_preferences = request.data.get('prefs')
+
+            assert isinstance(new_preferences, dict), "Invalid prefs."
+
+            profile_pref = Preference.objects.get(profile = request.user)
+
+            setattr(profile_pref, preference_name.lower(), new_preferences)
+
+            profile_pref.save()
+
+            return Response({
+                'error': False,
+                'message': 'Preferences updated!'
+            }, status=201)
+        
+        except Exception as e:
+            print("PREF_UPDATION_FAIL", e)
             return Response({'error': True, 'message': 'Something went wrong!'},status=500)
 
 @api_view(['GET'])
@@ -767,7 +971,7 @@ def analytics(request, *args, **kwargs):
                 # TODO: Build optimized arch. for retrieving and presenting to frontend
                 for media_name, ips in data.items():
                     data[media_name] = {}
-                    data[media_name]['cor'] = parse_lat_lon_of_ips(ips) # [ [lat_ip1, long_ip1], [lat_ip2, long_ip2], ... ]
+                    data[media_name]['cor'] = parse_data_from_ips(ips) # [ [lat_ip1, long_ip1], [lat_ip2, long_ip2], ... ]
                 # {Instagram: {cor: [[1, 2], [3, 4]], area: }}
                     # Disabling the area-labeling feature
 
@@ -779,7 +983,7 @@ def analytics(request, *args, **kwargs):
                 # convert ips into lat,long (s)
 
 
-                data['cor'] = parse_lat_lon_of_ips(ips)
+                data['cor'] = parse_data_from_ips(ips)
                 # NOTE: Adding location Area labeling is expensieve+time consuming relative to server, hence disabled for now. 
                 # But, can be on-turned by activating below lines
 
@@ -895,7 +1099,9 @@ def search_profile(request):
 
         sorted_profiles = Profile.objects.all()
 
-        serialized_profiles = ProfileSerializer(sorted_profiles, many=True, context={'profile_id': request.user.pk})
+        filtered_profiles = [profile for profile in sorted_profiles.annotate(similarity=TrigramSimilarity('username', query)).order_by('-similarity')][:100]   
+
+        serialized_profiles = ProfileSerializer(filtered_profiles, many=True, context={'profile_id': request.user.pk})
 
         return Response({
             'error': False,
@@ -905,4 +1111,41 @@ def search_profile(request):
 
     except Exception as e:
         print("PlanRetrievingFailed", e)
+        return Response({'error': True, 'message': 'Something went wrong!'},status=500)
+
+@api_view(['GET'])
+@permission_classes([AllowAny,])
+def list_profiles(request, *args, **kwargs):
+
+    try:
+        list_mode = kwargs.get('mode', False)
+        unique_id = kwargs.get('unqid', False)
+
+        '''
+        Reason behind replication of whitelisted labels and not giving direct orm properties access instead is 
+        this view is public and some of it can be private (un-shared)
+        '''
+        assert list_mode in ['followers'], "Invalid `mode`"
+
+        target_profile = Profile.objects.get(pk=unique_id)
+
+        data = None
+
+        match(list_mode):
+
+            case 'followers':
+                 
+                 followers = [{'profile_id': ac.pk, 'name': ac.get_full_name(), 'profile_pic_url': ac.safe_profile_pic_url} for ac in target_profile.reachers.all()]
+
+                 data = followers
+
+        return Response({'error': False, 'message': 'Successfully retrieved list of profiles', list_mode: data}, status=200)
+
+    except (Profile.DoesNotExist):
+        return Response({'error': True, 'message': 'Profile not found'}, status=404)        
+
+    except AssertionError as ae:
+        return Response({'error': True, 'message': str(ae)},status=400)
+
+    except Exception:
         return Response({'error': True, 'message': 'Something went wrong!'},status=500)

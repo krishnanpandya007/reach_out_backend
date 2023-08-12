@@ -1,5 +1,5 @@
 from rest_framework.serializers import ModelSerializer, ReadOnlyField, SerializerMethodField, IntegerField
-from .models import Profile, Social
+from .models import Profile, Social, Preference
 
 class QuickSocialSerializer(ModelSerializer):
 
@@ -7,7 +7,7 @@ class QuickSocialSerializer(ModelSerializer):
     Gives a quick overview of a social by providing social media name and profileUrl to that
     '''
 
-    profile_link = ReadOnlyField()
+    # profile_link = ReadOnlyField()
 
     class Meta:
         model = Social
@@ -55,13 +55,13 @@ class ProfilePageSerializer(ModelSerializer):
         read_only=True
     )
     reached = SerializerMethodField('_check_reached')
-    socialLinks = QuickSocialSerializer(many=True, read_only=True)
+    socials = QuickSocialSerializer(many=True, read_only=True)
     marked = SerializerMethodField('_check_marked')
     
 
     class Meta:
         model = Profile
-        fields = ['name', 'bio', 'profilePicUrl', 'reaches', 'reached', 'socialLinks', 'marked']
+        fields = ['name', 'bio', 'profilePicUrl', 'reaches', 'reached', 'socials', 'marked']
 
     def _check_reached(self, obj):
 
@@ -87,3 +87,11 @@ class ProfilePageSerializer(ModelSerializer):
         profile = Profile.objects.get(pk=current_profile_id)
 
         return profile.marks.contains(obj)
+    
+class ProfilePreferencesSerializer(ModelSerializer):
+
+    class Meta:
+        
+        model = Preference
+        fields = '__all__'
+        

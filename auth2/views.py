@@ -20,7 +20,7 @@ import sys
 from urllib.parse import unquote as decode_uri
 if(settings.BASE_DIR not in sys.path): sys.path.append(settings.BASE_DIR)
 from constants import SOCIAL_TOKEN_PROTECTOR_KEY, SOCIAL_TOKEN_PROTECTOR_SALT, EMAIL_BASIC_STRUCTURE, EMAIL_EMOJI_URL,TWILIO_ACCOUNT_SID,TWILIO_AUTH_TOKEN,TWILIO_PHONE_NO,EMAIL_REGEX,PHONE_REGEX,SOCIAL_MEDIAS,SOCIAL_OAUTH_LINKS,OAUTH_WEB_CLIENT_ID, OAUTH_WEB_CLIENT_SECRET, SOCIAL_LINKS_PREFIXES
-from global_utils.functions import get_client_ip, get_oauth2_tokens_response, generate_otp, format_phone_number, is_valid_url
+from global_utils.functions import get_oauth2_tokens_response, generate_otp, format_phone_number, is_valid_url
 from global_utils.decorators import memcache
 from scripts.credentials_fetcher import get_social_access_token, get_social_user_data
 
@@ -66,8 +66,6 @@ class SignUpView(APIView):
                               phone = Phone.objects.create(number=phone)
 
                               new_profile = Profile.objects.create(first_name=f_name, last_name=l_name, email=email, phone=phone)
-
-                              new_profile.raw_ip = get_client_ip(request)
 
                               new_profile.save()
 
@@ -116,9 +114,7 @@ class VerificationWithLoginView(APIView):
                         # Do Social verification stuff
                         code = request.data.get('code', None)
                         state = request.data.get('state', None) # Pass on directly the SyncKey/SyncToken (encrypted)
-                        # assert "--" in state, "Invalid state"
-                        # state = state.split("--")[1]
-                        # state = state.split('#')[0]
+
                         try:
                               data = social_token_signer.unsign_object(state)
                               profile_id = data.get('profile_id', None) # -1
@@ -133,7 +129,11 @@ class VerificationWithLoginView(APIView):
                         
                         else:
                               # pid, socialMedia
-                              token_response = get_social_access_token(platform, code)
+                              # Here we need to return app redirection url that redirects uer to app's specific page which confirms social linking of user
+
+                              token_response = get_social_access_token(platform, code) 
+
+                              # print(token_response['message'])
 
                               assert token_response['error'] == False, "Please try again later"
 
@@ -159,50 +159,60 @@ class VerificationWithLoginView(APIView):
                                     '''
                                     OverwriteSocialMEdiaIfExists
                                     For linking create social and attach or overwrite existing social and attach it
+                                    # returned params (in url) : social_link_status: success|error
+                                    # returned params (in url) : social_link_msg: STR
+                                    # returned params (url) : redirect_app_path: STR: reachoutapp.org./asd?social_link_status=success&social_link_mdg=something s not working
                                     '''
-                                    profile_link:str = None
-                                    if(platform == 'LinkedIn'):
-                                          profile_link = request.data.get('profile_link', False)
-                                          assert profile_link, "@param `profile_link` must be provided for such socials"
-                                          profile_link = decode_uri(profile_link)
-                                          assert regex_match(r'^(https?://)?([a-z]{2,3}\.)?linkedin\.com/(in|pub|company)/[a-zA-Z0-9_-]+/?$',profile_link), "LinkedIn profile link already attached to another profile"
-                                    elif(platform == 'Facebook'):
-                                          profile_link = request.data.get('profile_link', False)
-                                          assert profile_link, "@param `profile_link` must be provided for such socials"
-                                          profile_link = decode_uri(profile_link)
-                                          assert regex_match(r'^(https?://)?(www\.)?facebook\.com/[a-zA-Z0-9_.-]+/?$',profile_link), "Facebook profile link already attached to another profile"
-                                    elif (platform == 'Snapchat'):
-                                          snap_username = request.data.get('profile_link', False)
-                                          assert regex_match(r'^[a-zA-Z][a-zA-Z0-9_]{2,14}$', snap_username), "Snapchat username already linked to another profile!"
-                                          profile_link = f"https://www.snapchat.com/add/{snap_username}"
+                                    try:
 
-                                    target_profile = Profile.objects.get(pk=profile_id)
-                                    target_social_media = target_profile.socials.filter(socialMedia=platform)
-                                    
-                                    if(target_social_media.exists()):
+                                          profile_link:str = None
+                                          if(platform == 'LinkedIn'):
+                                                profile_link = request.data.get('profile_link', False)
+                                                assert profile_link, "@param `profile_link` must be provided for such socials"
+                                                profile_link = decode_uri(profile_link)
+                                                assert regex_match(r'^(https?://)?([a-z]{2,3}\.)?linkedin\.com/(in|pub|company)/[a-zA-Z0-9_-]+/?$',profile_link), "LinkedIn profile link already attached to another profile"
+                                          elif(platform == 'Facebook'):
+                                                profile_link = request.data.get('profile_link', False)
+                                                assert profile_link, "@param `profile_link` must be provided for such socials"
+                                                profile_link = decode_uri(profile_link)
+                                                assert regex_match(r'^(https?://)?(www\.)?facebook\.com/[a-zA-Z0-9_.-]+/?$',profile_link), "Facebook profile link already attached to another profile"
+                                          elif (platform == 'Snapchat'):
+                                                snap_username = request.data.get('profile_link', False)
+                                                assert regex_match(r'^[a-zA-Z][a-zA-Z0-9_]{2,14}$', snap_username), "Snapchat username already linked to another profile!"
+                                                profile_link = f"https://www.snapchat.com/add/{snap_username}"
+
+                                          target_profile = Profile.objects.get(pk=profile_id)
+                                          target_social_media = target_profile.socials.filter(socialMedia=platform)
                                           
-                                          # For overwriting delete the old one linked account
-                                          target_social_media = target_social_media.first()
-                                          target_social_media.delete()
-                              
-                                    # Lets link non-existing social media
-                                    # target_social_media.access_token = token_response['access_token']
-                                    # target_social_media.refresh_token = token_response['refresh_token']
-                                    # target_social_media.expires_in = timezone.now()+timezone.timedelta(seconds=token_response['expires_in'])
-                                    data_response = get_social_user_data(platform, token_response['access_token'], rotate_token=token_response['refresh_token'])
-                                    assert data_response['error'] == False, "Failed retrieving social data!"
-                                    '''
-                                    Generating profile_link for remaining socials
-                                    '''
-                                    if(profile_link is None):
-                                          '''
-                                          NOTE: in reddit maybe URL joining collide because of slash
-                                          '''
-                                          profile_link = SOCIAL_LINKS_PREFIXES[platform]['base_url'] % data_response[SOCIAL_LINKS_PREFIXES[platform]['target_field']]
-                                    # AccessToken, refreshToken, expires, primary,secondary(profile_link), 
-                                    Social.objects.create(profile=target_profile, socialMedia=platform, handleId=data_response['profile_id'], access_token=token_response['access_token'], refresh_token=token_response['refresh_token'], expires_at=timezone.now()+timezone.timedelta(seconds=token_response['expires_in']), name=data_response['primary'], profilePicUrl=data_response['secondary'], profile_link=profile_link)
+                                          if(target_social_media.exists()):
+                                                
+                                                # For overwriting delete the old one linked account
+                                                target_social_media = target_social_media.first()
+                                                target_social_media.delete()
                                     
-                                    return Response({'error': False, 'message': 'Social Linked!'}, status=200)
+                                          # Lets link non-existing social media
+                                          # target_social_media.access_token = token_response['access_token']
+                                          # target_social_media.refresh_token = token_response['refresh_token']
+                                          # target_social_media.expires_in = timezone.now()+timezone.timedelta(seconds=token_response['expires_in'])
+                                          data_response = get_social_user_data(platform, token_response['access_token'], rotate_token=token_response['refresh_token'])
+                                          assert data_response['error'] == False, "Failed retrieving social data!"
+                                          '''
+                                          Generating profile_link for remaining socials
+                                          '''
+                                          if(profile_link is None):
+                                                '''
+                                                NOTE: in reddit maybe URL joining collide because of slash
+                                                '''
+                                                profile_link = SOCIAL_LINKS_PREFIXES[platform]['base_url'].format(data_response[SOCIAL_LINKS_PREFIXES[platform]['target_field']])
+                                          # AccessToken, refreshToken, expires, primary,secondary(profile_link), 
+                                          Social.objects.create(profile=target_profile, socialMedia=platform, handleId=data_response['profile_id'], access_token=token_response['access_token'], refresh_token=token_response['refresh_token'], expires_at=timezone.now()+timezone.timedelta(seconds=token_response['expires_in']), name=data_response['primary'], profilePicUrl=data_response['secondary'], profile_link=profile_link, last_updated=timezone.now())
+                                          
+                                          return Response({'error': False, 'message': 'Social Linked!', 'redirect_app_path':  f"/link/socials/?social_link_status=success&social_link_msg={platform} profile linked succefully!"}, status=200)
+                                    except AssertionError as aae:
+                                          print(aae)
+                                          return Response({'error': False, 'message': 'unable to link social', 'redirect_app_path':  f"/link/socials/?social_link_status=error&social_link_msg=Error linking {platform} profile, Try again later."}, status=400)
+                        print('Ono')
+                        return Response({'error': True, 'message': 'Something went wrong'},status=400)
 
                   else:
                         mode_identifier = request.data.get('mode_identifier', None)# phone => +91 2334-45,email
@@ -243,6 +253,7 @@ class VerificationWithLoginView(APIView):
                   return Response({'error': True, 'message': 'Profile not found'}, status=404)        
 
             except AssertionError as ae:
+                  print('assa', ae)
                   return Response({'error': True, 'message': str(ae)},status=400)
 
             except Exception as e:
@@ -349,7 +360,8 @@ class SocialConnectionUrlBuilderView(APIView):
                         'platform': platform
                   }
                   signed_state = social_token_signer.sign_object(data)
-                  signed_state = platform + '--' + signed_state
+                  # NOTE: Below sperator is also sensitive to frontend portion
+                  signed_state = platform + '@@' + signed_state
 
                   redirection_url = SOCIAL_OAUTH_LINKS[platform] + '&state=' + signed_state
 

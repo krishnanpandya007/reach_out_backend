@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import ProfileView, UploadFileView, ProfilePageView, FeedView, SocialView, search_profile, validate_permissions, report_profile, validate, bookmark_profile, reach_profile, social_profile_pics, sync_contacts, social_hit_log, analytics
+from .views import ProfileView, UploadFileView, ProfilePageView, FeedView, SocialView, PreferencesView, ContactsView, subscribe_notifications, list_profiles, search_profile, validate_permissions, report_profile, validate, bookmark_profile, reach_profile, social_profile_pics, social_hit_log, analytics
 
 urlpatterns = [
     # path('/login')
@@ -7,9 +7,13 @@ urlpatterns = [
     path('profile/report/<int:target_profile_id>/', report_profile, name='report a profile'),
     path('profile/mark/<int:target_profile_id>', bookmark_profile, name='markup a profile'),
     path('profile/reach/<int:target_profile_id>/', reach_profile, name='reach_profile'), ## Default behaves as toggleView
-    path('profile/contacts/sync/', sync_contacts, name='sync_contacts'),
-    path('profile/', ProfileView.as_view(), name='profile_specific_operations'), # delete, post(update), get(basic_info)
+    path('profile/contacts/', ContactsView.as_view(), name='sync_contacts'),
     path('profile/search/', search_profile, name='search profile'), # delete, post(update), get(basic_info)
+    path('profile/preferences/', PreferencesView.as_view(), name='Preferences Handler'), # delete, post(update), get(basic_info)
+    path('profile/list/<str:mode>/<int:unqid>/', list_profiles, name='List profiles'), # delete, post(update), get(basic_info)
+    path('profile/', ProfileView.as_view(), name='profile_specific_operations'), # delete, post(update), get(basic_info)
+
+    path('subscribe/notifications/', subscribe_notifications, name='subscribe notifications'), # delete, post(update), get(basic_info)
 
     path('upload/', UploadFileView.as_view(), name='upload_file_view'),
 

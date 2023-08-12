@@ -12,7 +12,7 @@ import urllib.parse
 from requests import get, post
 if(settings.BASE_DIR not in sys.path): sys.path.append(settings.BASE_DIR)
 
-from constants import OAUTH_CORE_CLIENT_ID, OAUTH_CORE_CLIENT_SECRET, IPINFO_TOKEN
+from constants import OAUTH_CORE_CLIENT_ID, OAUTH_CORE_CLIENT_SECRET, IPINFO_TOKEN, DEFAULT_CLIENT_COUNTRY_CODE
 
 def get_staff_password(username):
 
@@ -65,18 +65,40 @@ def generate_otp(length=5, complex=False, addon=''):
     choice_domain:str = digits if not complex else (digits + ascii_letters.replace('l', '').replace('i', '').replace('L', '').replace('I', '') +addon)
     return ''.join(random.choice(choice_domain) for i in range(length))
 
-def format_phone_number(contact_number:str, client_country_calling_code:str):
+def remove_filename_extention(filename_path:str) -> str:
+    return '.'.join(filename_path.split('.')[:-1])
 
-    if(" " in contact_number[-10:]):
-        contact_number = contact_number[:-10] + contact_number[-10:].replace(' ', '-')
-    if("-" not in contact_number[-10:]):
-        contact_number = contact_number[:-5] + '-' +  contact_number[-5:]
-    if("+" not in contact_number):
-        contact_number = client_country_calling_code + " " + contact_number
+def format_phone_number(contact_number:str) -> str:
+
+    phone_number = ''
+    country_code = ''
+    
+    insertive_position_index = 9 # len(phone_number) - 1
+
+    for i in contact_number[::-1]:
+
+        if(i.isdigit()):
+
+            if(insertive_position_index == -1):
+                # Start filling country code
+                if(len(country_code) > 3):
+                    break
+                else:
+                    country_code = i + country_code
+            else:
+                phone_number = i + phone_number
+                insertive_position_index -= 1
+
+    if(len(country_code) == 0):
+        # Country code is not included, use default provided
+        country_code = DEFAULT_CLIENT_COUNTRY_CODE
     else:
-        if(contact_number[-12] != ' '):
-            contact_number = contact_number[:-11] + ' ' + contact_number[-11:]
-    return contact_number
+        country_code = '+' + country_code
+
+    phone_number = phone_number[:5] + '-' + phone_number[5:]
+
+    return country_code + ' ' + phone_number
+
 
 def get_ip_info(ip, token):
 
@@ -86,7 +108,7 @@ def get_ip_info(ip, token):
 
     return res.json()
 
-def parse_lat_lon_of_ips(ips:list, op_label:str='loc'):
+def parse_data_from_ips(ips:list, op_label:str='loc'):
     '''
     @change op_label to '
     res = p('https://ipinfo.io/batch?token=c48d9147f45dc8', json=['8.8.4.4/loc'])
@@ -96,7 +118,11 @@ def parse_lat_lon_of_ips(ips:list, op_label:str='loc'):
     res = post(f'https://ipinfo.io/batch?token={IPINFO_TOKEN}', json=list(map(lambda ip: f'{ip}/{op_label}', ips)))
 
     if(res.status_code == 200):
-        return [ [float(c) for c in val.split(',')] for val in res.json().values() if type(val) != dict] # [ [1, 2.0], [-34.345, 78.09], [lat, long] ]
+        if(op_label == 'loc'):
+
+            return [ [float(c) for c in val.split(',')] for val in res.json().values() if type(val) != dict] # [ [1, 2.0], [-34.345, 78.09], [lat, long] ]
+        else:
+            return res.json()
     else:
         print("Unable to fetch locations based on IPs")
         return []

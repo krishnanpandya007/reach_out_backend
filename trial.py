@@ -217,17 +217,64 @@ This file consists of small testing snippets.
 95105 39042
 '''
 
-def format_phone_number(contact_number:str, client_country_calling_code:str):
+# def format_phone_number(contact_number:str, client_country_calling_code:str):
 
-    if(" " in contact_number[-10:]):
-        contact_number = contact_number[:-10] + contact_number[-10:].replace(' ', '-')
-    if("-" not in contact_number[-10:]):
-        contact_number = contact_number[:-5] + '-' +  contact_number[-5:]
-    print(contact_number)
-    if("+" not in contact_number):
-        contact_number = client_country_calling_code + " " + contact_number
-    else:
-        if(contact_number[-12] != ' '):
-            contact_number = contact_number[:-11] + ' ' + contact_number[-11:]
-    return contact_number
+#     if(" " in contact_number[-10:]):
+#         contact_number = contact_number[:-10] + contact_number[-10:].replace(' ', '-')
+#     if("-" not in contact_number[-10:]):
+#         contact_number = contact_number[:-5] + '-' +  contact_number[-5:]
+#     print(contact_number)
+#     if("+" not in contact_number):
+#         contact_number = client_country_calling_code + " " + contact_number
+#     else:
+#         if(contact_number[-12] != ' '):
+#             contact_number = contact_number[:-11] + ' ' + contact_number[-11:]
+#     return contact_number
+# def format_phone_number(contact_number:str) -> str:
 
+#     phone_number = ''
+#     country_code = ''
+    
+#     insertive_position_index = 9 # len(phone_number) - 1
+
+#     for i in contact_number[::-1]:
+
+#         if(i.isdigit()):
+
+#             if(insertive_position_index == -1):
+#                 # Start filling country code
+#                 if(len(country_code) > 3):
+#                     break
+#                 else:
+#                     country_code = i + country_code
+#             else:
+#                 phone_number = i + phone_number
+#                 insertive_position_index -= 1
+
+
+#     if(len(country_code) == 0):
+#         # Country code is not included, use default provided
+#         country_code = DEFAULT_CLIENT_COUNTRY_CODE
+#     else:
+#         country_code = '+' + country_code
+
+#     phone_number = phone_number[:5] + '-' + phone_number[5:]
+
+#     return country_code + ' ' + phone_number
+
+'''
+views.py {TRASH}
+
+            # from country_code_to_country_numbers import codes
+            # development_ip = '49.36.64.115'
+            # # ip_info = get_ip_info(get_client_ip(request), IPINFO_TOKEN)
+            # ip_info = get_ip_info(development_ip, IPINFO_TOKEN)
+
+            # if(ip_info):
+            #     client_country_calling_code = "+" + codes[ip_info['country']]
+            # else:
+            #     client_country_calling_code = "+91"
+
+            # Add countrycode to non country codes
+
+'''

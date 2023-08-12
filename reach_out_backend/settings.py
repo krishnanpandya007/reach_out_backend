@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-7cy47=8vs8t^vd7a7_)9l0c2xb$g_5ad-fpj*7s=!!jtyfu#gv
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.165.153', '127.0.0.1']
+ALLOWED_HOSTS = ['192.168.32.153', '127.0.0.1']
 
 
 # Application definition
@@ -40,6 +40,7 @@ INSTALLED_APPS = [
 
     'auth2',
     'api',
+    'staff',
 
     'corsheaders',
     'rest_framework',
@@ -62,6 +63,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'api.middleware.UserStatsUpdationMiddleware',
 ]
 
 ROOT_URLCONF = 'reach_out_backend.urls'
@@ -102,7 +104,7 @@ REST_FRAMEWORK = {
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
-    'http://192.168.165.153:3000',
+    'http://192.168.4.153:3000',
     'http://127.0.0.1:3000',
 ]
 
@@ -248,3 +250,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'auth2.Profile'
+
+import concurrent.futures
+executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)

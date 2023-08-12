@@ -78,6 +78,8 @@ def get_social_user_data(platform, access_token, rotate_token=None, sync_model=N
 
     try:
         if((data_as_json['error']==False) and (sync_model is not None)):
+            print('Gotten')
+            print(data_as_json)
             sync_model.handleId = data_as_json['profile_id']
             sync_model.name = data_as_json['primary']
             sync_model.profilePicUrl = data_as_json['secondary']
@@ -87,8 +89,12 @@ def get_social_user_data(platform, access_token, rotate_token=None, sync_model=N
             if(data_as_json.get('new_refresh', False)):
                 sync_model.refresh_token = data_as_json['new_refresh']
             if(data_as_json.get('relogin_required', False)):
+                print('Innn')
                 sync_model.relogin_required = data_as_json['relogin_required']
 
+            sync_model.save()
+        elif(data_as_json['relogin_required']==True) and (sync_model is not None):
+            sync_model.relogin_required = True
             sync_model.save()
     except Exception as e:
         logger.error('Cannot sync user_data to target model', e)
@@ -141,7 +147,6 @@ def get_meta_user_data(platform, access_token, take_raw_snap=False):
                 'primary': user_data_json['name'],
                 'secondary': fb_avatar_url,
             }
-
         # For Instagram
         return {
             'error': False,
@@ -169,6 +174,7 @@ def get_snapchat_user_data(platform, access_token, take_raw_snap=False):
     # If we have access token fetch the information and return success code mixin
 
     user_data_response = post(OAUTH_CONFIGS['Snapchat']['info_retrieval_endpoint'], json={'query': "{me{displayName bitmoji{avatar} externalId profileLink}}"}, headers=user_info_fetch_headers, timeout=15)
+    # print("SNAP_RESP:",user_data_response.json())
     if(user_data_response.status_code == 400):
         # Try on request to refresh acces token then if fails then returns error response
         
@@ -178,27 +184,40 @@ def get_snapchat_user_data(platform, access_token, take_raw_snap=False):
             'primary': None,
             'secondary': None
         }
-    user_data = user_data_response.json()
-    # Fetch primary & Secondary info for discord/make another function for fething out primary
-    # and secondary information per app/social platform
-    if(user_data_response.status_code == 200 and user_data.get('data', False)):
-
-        return {
-
-            'error': False,
-            'primary': user_data['data']['me']['displayName'],
-            'secondary': user_data['data']['me']['bitmoji'].get('avatar', None),
-            'profile_id': user_data['data']['me']['externalId']
-
-        }
-
-
-    else:
+    elif user_data_response.status_code == 401:
+        print('returned')
         return {
             'error': True,
             'primary': None,
             'secondary': None,
             'profile_id': None,
+            'relogin_required': True
+        }
+    try:
+        
+        user_data = user_data_response.json()
+        # print("alele:",user_data)
+        # Fetch primary & Secondary info for discord/make another function for fething out primary
+        # and secondary information per app/social platform
+        if(user_data_response.status_code == 200 and user_data.get('data', False)):
+
+            return {
+
+                'error': False,
+                'primary': user_data['data']['me']['displayName'],
+                'secondary': user_data['data']['me']['bitmoji'].get('avatar', None),
+                'profile_id': user_data['data']['me']['externalId']
+
+            }
+
+    finally:
+
+        return {
+            'error': True,
+            'primary': None,
+            'secondary': None,
+            'profile_id': None,
+            'relogin_required': True
         }
 
 @rotate_and_retry_on_400
@@ -210,8 +229,16 @@ def get_user_data_generally(platform, access_token, take_raw_snap=False):
     # If we have access token fetch the information and return success code mixin
 
     user_data_response = get(OAUTH_CONFIGS[platform]['info_retrieval_endpoint'], headers=user_info_fetch_headers, timeout=15)
+    # print("user_data_core:Debug", )
+    if(user_data_response.status_code == 401):
+        return {
+            'error': True,
+            'primary': None,
+            'secondary': None,
+            'profile_id': None,
+            'relogin_required': True
+        }
     user_data = user_data_response.json()
-    # print("user_data_core:Debug", user_data)
     # Fetch primary & Secondary info for discord/make another function for fething out primary
     # and secondary information per app/social platform
     if(user_data_response.status_code == 200):
