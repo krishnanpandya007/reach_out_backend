@@ -10,7 +10,7 @@ def start_memcahced_server():
     @requires ROOT/ADMIN PERMISSION
     '''
 
-    process = Popen("c:\memcached\memcached.exe -d start", shell=True, stdout=PIPE)
+    process = Popen("systemctl start memcached", shell=True, stdin=PIPE, stdout=PIPE)
     process.wait()
     status_code = process.returncode
     if(status_code != 0):
@@ -24,12 +24,12 @@ def stop_memcahced_server():
     @requires ROOT/ADMIN PERMISSION
     '''
 
-    process = Popen("c:\memcached\memcached.exe -d stop", shell=True, stdout=PIPE)
+    process = Popen("systemctl stop memcached", shell=True, stdin=PIPE, stdout=PIPE)
     process.wait()
     status_code = process.returncode
     if(status_code != 0):
         logging.error('Failed to stop memCache server')
         print("[FAILED]: fail to stop memCache server")
 
-if (__name__ == "__main__"):
-    start_memcahced_server()
+# if (__name__ == "__main__"):
+#     start_memcahced_server()

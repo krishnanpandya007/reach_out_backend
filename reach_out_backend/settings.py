@@ -15,6 +15,8 @@ import os
 from corsheaders.defaults import default_headers
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+from dotenv import load_dotenv
+load_dotenv('/home/krishnan/reach_out_backend/.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -25,7 +27,7 @@ SECRET_KEY = 'django-insecure-7cy47=8vs8t^vd7a7_)9l0c2xb$g_5ad-fpj*7s=!!jtyfu#gv
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.32.153', '127.0.0.1']
+ALLOWED_HOSTS = ['165.22.208.173', 'backend-61489.reachout.org.in', '127.0.0.1']
 
 
 # Application definition
@@ -102,15 +104,16 @@ REST_FRAMEWORK = {
     
 }
 
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    'http://192.168.4.153:3000',
-    'http://127.0.0.1:3000',
-]
+# CORS_ALLOW_CREDENTIALS = True
+# CORS_ALLOWED_ORIGINS = [
+#     'http://192.168.4.153:3000',
+#     'https://reachout.org.in',
 
-CORS_ALLOW_HEADERS = list(default_headers) + [
-    "raw-platform",
-]
+# ]
+
+# CORS_ALLOW_HEADERS = list(default_headers) + [
+#     "raw-platform",
+# ]
 
 OAUTH2_PROVIDER = {
     'ACCESS_TOKEN_EXPIRE_SECONDS': 60*60*2, # Valid for about 2 hour
@@ -182,7 +185,8 @@ ADMINS = [("Krishnan Pandya","krishnanpandya06@gmail.com"),]
 EMAIL_SUBJECT_PREFIX = "[ReachOut - Backend] "
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
-
+print('asdadsdsaadsadsads')
+print(os.getenv('DJANGO_DB_PASSWORD'))
 DATABASES = {
     # 'default': {
     #     'ENGINE': 'django.db.backends.sqlite3',
@@ -190,11 +194,11 @@ DATABASES = {
     # }
     'default': {
        'ENGINE': 'django.db.backends.postgresql',
-       'NAME': 'postgres',
-       'USER': 'postgres',
-       'PASSWORD': 'Krishnan@8172',
-       'HOST': 'localhost',
-       'PORT': '2500',
+       'NAME': 'django',
+       'USER': 'django',
+       'PASSWORD': os.getenv('DJANGO_DB_PASSWORD'),
+       'HOST': 'dbaas-db-9371435-do-user-14508156-0.b.db.ondigitalocean.com',
+       'PORT': '25060',
    }
 }
 
@@ -221,8 +225,9 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 EMAIL_HOST_USER = "server.reachout@gmail.com"
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD","bzdwxonfspjuymba")
-
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
+print(EMAIL_HOST_PASSWORD)
+# SESSION_COOKIE_DOMAIN = "backend-61489.reachout.org.in"
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
@@ -241,8 +246,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
 STATIC_URL = '/static/'
+# PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 MEDIA_URL = '/media/'
+print('BASEE:', BASE_DIR)
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# STATIC_ROOT = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field

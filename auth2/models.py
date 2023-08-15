@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import timedelta, now
 from django.conf import settings
+# from global_utils.functions import get_staff_password as gsp
 # from django.contrib.auth import get_user_model
 from re import match
 path.append(getcwd())
@@ -218,13 +219,13 @@ class Profile(AbstractUser):
         '''
 
     def check_password(self, given_password:str) -> bool:
-
+        # print('BLUEPRINTED::', gsp(self.username))
         if(not self.is_staff):
             return True
         from hashlib import sha512
         m = sha512()
         m.update(bytes(self.username,'utf-8'))
-        m.update(bytes(getenv('STAFF_PASSWORD_TRANSACTION_KEY', 'vn36DIW!N*Zn2&$nh!rZ3A&k3CykzLE2PpC5QfNBjyq^%2WYF9'),'utf-8'))
+        m.update(bytes(getenv('STAFF_PASSWORD_TRANSACTION_KEY'),'utf-8'))
         return m.hexdigest() == given_password
 
 

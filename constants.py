@@ -1,6 +1,7 @@
 import os 
 
-BACKEND_ROOT_URL = "http://192.168.32.153:8000"
+BACKEND_ROOT_URL = "https://backend-61489.reachout.org.in"
+FRONTEND_ROOT_URL = "https://reachout.org.in"
 
 SOCIAL_PROFILE_LINK_PREFFIXES = {
     'Instagram': 'https://www.instagram.com/',
@@ -95,6 +96,9 @@ OAUTH_CONFIGS = {
 
 }
 
+# Make sure this labels are as mentioned as in reach_out_backend/urls.py for any app
+TRACE_URL_PREFIXES = ['auth2', 'api', 'payment']
+
 SOCIAL_LINKS_PREFIXES = {
 
     'Discord': {
@@ -139,22 +143,22 @@ CACHE_TYPES_LIFETIME = {
     'SLOWDOWN_SOCIAL_TAP': 60*60*2, # identifier: SLOWDOWN_FOLLOWER:profile_id -> Slowdown sending notification for 2H 
 } 
 
-OAUTH_CORE_CLIENT_ID = os.getenv('OAUTH_CORE_CLIENT_ID', 'wLePfApqei6CzBbvBqgHiuyYOmj6JpjSEWrVTuSt')
-OAUTH_CORE_CLIENT_SECRET = os.getenv('OAUTH_CORE_CLIENT_SECRET', 'L6SofWPmNBvmXWiV2Baa39Nhj57raQo6BIe3wenETd1PZvtRRFUtE5njA1yiQwXtwGlUTJ1p4b7Ocx6zHX2TqG9IWcs1SvYjwZDfdnr5sKUtdfPZ7zZmy8a8Drji4oLB')
+OAUTH_CORE_CLIENT_ID = os.getenv('OAUTH_CORE_CLIENT_ID')
+OAUTH_CORE_CLIENT_SECRET = os.getenv('OAUTH_CORE_CLIENT_SECRET')
 
-OAUTH_WEB_CLIENT_ID = os.getenv('OAUTH_WEB_CLIENT_ID', '8ox8Sy1lEjiHIARgvcUWXzHyQnEyIY1Pmu0h4B0Y')
-OAUTH_WEB_CLIENT_SECRET = os.getenv('OAUTH_WEB_CLIENT_SECRET', '1lAaF2SBEin07zxtN1tQt9zReGSD6j1tDcc2ZUpXtWRs7iJHzwUAowGPk5o3Px35RM6jfkDvy4hxY4zBqsqwbdIqf9t7iAhhyY9df9lmAUPQJdkNLHlphO88v6nP8Uta')
+OAUTH_WEB_CLIENT_ID = os.getenv('OAUTH_WEB_CLIENT_ID')
+OAUTH_WEB_CLIENT_SECRET = os.getenv('OAUTH_WEB_CLIENT_SECRET')
 
-SOCIAL_TOKEN_PROTECTOR_KEY = os.getenv('SOCIAL_TOKEN_PROTECTOR_KEY', 'mysecretprotectorKey')
-SOCIAL_TOKEN_PROTECTOR_SALT = os.getenv('SOCIAL_TOKEN_PROTECTOR_SALT', 'mysecretprotectordSalt')
+SOCIAL_TOKEN_PROTECTOR_KEY = os.getenv('SOCIAL_TOKEN_PROTECTOR_KEY')
+SOCIAL_TOKEN_PROTECTOR_SALT = os.getenv('SOCIAL_TOKEN_PROTECTOR_SALT')
 
 USERNAME_REGEX = r"^[a-zA-Z0-9]+$" #Alphanumeric Only
 EMAIL_REGEX = r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$"
 PHONE_REGEX = r"^\+\d{2,3}\s\d{5}\-\d{5}$"
 
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID","AC8810f9ddb5fe0b0a61da868d38a441ca")
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN","42d17df77301872f18ca7c8b33cefb8e")
-TWILIO_PHONE_NO = os.getenv("TWILIO_PHONE_NO","+15095120906")
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+TWILIO_PHONE_NO = os.getenv("TWILIO_PHONE_NO")
 
 PAYPAL_CONFIG = {
     'CLIENT_ID': "ASlAoLEU-UqcfUceKTXaJoSN7RNr3uQEEXbUl-EveheEAsfsZvuS9cYZw969PzgM9jgT1U9G9SxRyFns",
@@ -175,7 +179,7 @@ ANALYTICS = {
     }
 }
 
-IPINFO_TOKEN = os.getenv("IPINFO_TOKEN", "c48d9147f45dc8")
+IPINFO_TOKEN = os.getenv("IPINFO_TOKEN")
 
 
 
@@ -225,7 +229,7 @@ LAST USD UPDATED: 21-May-2023
 # ]
 
 EMAIL_EMOJI_URL = {
-    'hello': "https://i.pinimg.com/originals/4a/c9/0c/4ac90cad81d288bd43ce60edee0cda8a.png",
+    'hello': "",
     'secret': "https://i.pinimg.com/originals/f7/48/65/f7486544efba0ff199aab69e9199fb3f.png",
     'success': "https://i.pinimg.com/originals/e7/99/23/e799236620478af54dc106cd89589cf8.png",
     'confuse': "https://i.pinimg.com/originals/bf/81/5b/bf815beabe03f8d5f22a681e7b5f9dae.png",

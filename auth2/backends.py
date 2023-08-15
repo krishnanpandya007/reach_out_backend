@@ -24,7 +24,6 @@ class ProfileBackend(ModelBackend):
 
             user = None
             if (regex_match(USERNAME_REGEX, username)):
-
                 user = User.objects.get(username=username)
                                 
 
@@ -34,6 +33,7 @@ class ProfileBackend(ModelBackend):
                 
 
             elif (regex_match(PHONE_REGEX, username)):
+
                 phone = Phone.objects.get(number=username)
                 user = phone.target_profile
 
@@ -47,7 +47,6 @@ class ProfileBackend(ModelBackend):
         else:
 
             if(user.is_staff):
-                print("checking")
                 success = user.check_password(password)
                 return user if success else None
             return user
