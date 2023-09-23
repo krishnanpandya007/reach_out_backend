@@ -1,7 +1,8 @@
 import os 
+from enum import Enum
 
 BACKEND_ROOT_URL = "https://backend-61489.reachout.org.in"
-FRONTEND_ROOT_URL = "https://reachout.org.in"
+FRONTEND_ROOT_URL = "https://www.reachout.org.in"
 
 SOCIAL_PROFILE_LINK_PREFFIXES = {
     'Instagram': 'https://www.instagram.com/',
@@ -14,13 +15,13 @@ SOCIAL_PROFILE_LINK_PREFFIXES = {
 }
 
 SOCIAL_OAUTH_LINKS = {
-    'Instagram': 'https://www.instagram.com/oauth/authorize?client_id=2138701906517396&redirect_uri=https%3A%2F%2Freachout.org.in%2Fauth%2Fredirect%2F&response_type=code&scope=user_profile&platform=instaU12',
-    'Snapchat': 'https://accounts.snapchat.com/accounts/oauth2/auth?client_id=cc0ab0b7-82d4-446e-bf54-9c86603c4a79&redirect_uri=https%3A%2F%2Freachout.org.in%2Fauth%2Fredirect&response_type=code&scope=https://auth.snapchat.com/oauth2/api/user.display_name https://auth.snapchat.com/oauth2/api/user.external_id https://auth.snapchat.com/oauth2/api/user.bitmoji.avatar',
-    'Facebook': 'https://www.facebook.com/dialog/oauth?app_id=529831602511861&redirect_uri=https%3A%2F%2Freachout.org.in%2Fauth%2Fredirect%2F',
+    'Instagram': 'https://www.instagram.com/oauth/authorize?client_id=2138701906517396&redirect_uri=https%3A%2F%2Fwww.reachout.org.in%2Fauth%2Fredirect%2F&response_type=code&scope=user_profile&platform=instaU12',
+    'Snapchat': 'https://accounts.snapchat.com/accounts/oauth2/auth?client_id=cc0ab0b7-82d4-446e-bf54-9c86603c4a79&redirect_uri=https%3A%2F%2Fwww.reachout.org.in%2Fauth%2Fredirect&response_type=code&scope=https://auth.snapchat.com/oauth2/api/user.display_name https://auth.snapchat.com/oauth2/api/user.external_id https://auth.snapchat.com/oauth2/api/user.bitmoji.avatar',
+    'Facebook': 'https://www.facebook.com/dialog/oauth?app_id=529831602511861&redirect_uri=https%3A%2F%2Fwww.reachout.org.in%2Fauth%2Fredirect%2F',
     # [NOTE, TODO]: when server is up on domain, check LinkedIn URL
-    'LinkedIn': 'https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=77x6yldk1f19e2&scope=r_liteprofile&redirect_uri=https%3A%2F%2Freachout.org.in%2Fauth%2Fredirect%2F',
-    'Reddit': 'https://www.reddit.com/api/v1/authorize?client_id=sSPxMYHlFoqrn5flh0MNsw&response_type=code&redirect_uri=https%3A%2F%2Freachout.org.in%2Fauth%2Fredirect%2F&scope=identity&duration=permanent',
-    'Discord': 'https://discord.com/oauth2/authorize?response_type=code&client_id=1059894751773597727&scope=identify&redirect_uri=https%3A%2F%2Freachout.org.in%2Fauth%2Fredirect%2F&prompt=consent'
+    'LinkedIn': 'https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=77x6yldk1f19e2&scope=r_liteprofile&redirect_uri=https%3A%2F%2Fwww.reachout.org.in%2Fauth%2Fredirect%2F',
+    'Reddit': 'https://www.reddit.com/api/v1/authorize?client_id=sSPxMYHlFoqrn5flh0MNsw&response_type=code&redirect_uri=https%3A%2F%2Fwww.reachout.org.in%2Fauth%2Fredirect%2F&scope=identity&duration=permanent',
+    'Discord': 'https://discord.com/oauth2/authorize?response_type=code&client_id=1059894751773597727&scope=identify&redirect_uri=https%3A%2F%2Fwww.reachout.org.in%2Fauth%2Fredirect%2F&prompt=consent'
 }
 # If change available in any of above or below data, please consider other-one also
 OAUTH_CONFIGS = {
@@ -28,7 +29,7 @@ OAUTH_CONFIGS = {
     'Discord': {
         'client_id': "1059894751773597727",
         'client_secret': "kL-Cu_eb3QZdLa1RBvZcH_vDr_JMzhZz",
-        'redirect_uri': "https://reachout.org.in/auth/redirect/",
+        'redirect_uri': "https://www.reachout.org.in/auth/redirect/",
         'access_retrieval_endpoint': "https://discord.com/api/oauth2/token",
         'refresh_access_token_endpoint':"https://discord.com/api/v10/oauth2/token",
         'info_retrieval_endpoint': "https://discord.com/api/oauth2/@me"
@@ -37,7 +38,7 @@ OAUTH_CONFIGS = {
     'Instagram': {
         'client_id': "2138701906517396",
         'client_secret': "d57f3c828cbb0cc64080767aec663738",
-        'redirect_uri': "https://reachout.org.in/auth/redirect/",
+        'redirect_uri': "https://www.reachout.org.in/auth/redirect/",
         'access_retrieval_endpoint': "https://api.instagram.com/oauth/access_token",
         'refresh_access_token_endpoint': "https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=%s",
         'info_retrieval_endpoint': "https://graph.instagram.com/v15.0/me?fields=id,account_type,username&access_token=%s" #Remaining
@@ -55,7 +56,7 @@ OAUTH_CONFIGS = {
         'client_id': "529831602511861",
         'client_secret': "607b4e44150b8ac1df58aee9806cc9b5",
         'refresh_access_token_endpoint':"https://www.linkedin.com/oauth/v2/accessToken",
-        'redirect_uri': 'https://reachout.org.in/auth/redirect/',
+        'redirect_uri': 'https://www.reachout.org.in/auth/redirect/',
 
         'access_retrieval_endpoint': "https://graph.facebook.com/oauth/access_token",
         'info_retrieval_endpoint': "https://graph.facebook.com/me?fields=id,name,picture&access_token=%s" #Remaining
@@ -70,7 +71,7 @@ OAUTH_CONFIGS = {
         'access_retrieval_endpoint': "https://accounts.snapchat.com/accounts/oauth2/token",
         'refresh_access_token_endpoint':"https://accounts.snapchat.com/accounts/oauth2/token",
         'info_retrieval_endpoint': "https://kit.snapchat.com/v1/me",
-        'redirect_uri': 'https://reachout.org.in/auth/redirect'
+        'redirect_uri': 'https://www.reachout.org.in/auth/redirect'
 
     },
 
@@ -80,13 +81,13 @@ OAUTH_CONFIGS = {
         'access_retrieval_endpoint': 'https://www.reddit.com/api/v1/access_token',
         'refresh_access_token_endpoint': "https://www.reddit.com/api/v1/access_token",
         'info_retrieval_endpoint': "https://oauth.reddit.com/api/v1/me",
-        'redirect_uri': 'https://reachout.org.in/auth/redirect/'
+        'redirect_uri': 'https://www.reachout.org.in/auth/redirect/'
     },
 
     'LinkedIn': {
         'client_id': '77x6yldk1f19e2',
         'client_secret': '0oaFTFhoeQGfiXjC',
-        'redirect_uri': 'https://reachout.org.in/auth/redirect/',
+        'redirect_uri': 'https://www.reachout.org.in/auth/redirect/',
         'access_retrieval_endpoint': 'https://www.linkedin.com/oauth/v2/accessToken',
         'refresh_access_token_endpoint':"https://www.linkedin.com/oauth/v2/accessToken",
         'info_retrieval_endpoint': 'https://api.linkedin.com/v2/me?projection=(id,firstName,lastName,profilePicture(displayImage~:playableStreams))'
@@ -159,7 +160,7 @@ PHONE_REGEX = r"^\+\d{2,3}\s\d{5}\-\d{5}$"
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_PHONE_NO = os.getenv("TWILIO_PHONE_NO")
-
+# Twilio recoverID:rqfqBfdb9POAffOmDBDL2LZVEo0nV8o3I7l1btDg
 PAYPAL_CONFIG = {
     'CLIENT_ID': "ASlAoLEU-UqcfUceKTXaJoSN7RNr3uQEEXbUl-EveheEAsfsZvuS9cYZw969PzgM9jgT1U9G9SxRyFns",
     'SECRET_KEY': 'EGRFIICOA9cmV8F2yzIVsXtCLMVLGUPZlGi1uPgQqMTPewWfdcLHlIWi-WVAuWfeCaSph60Xu4BLG6yD',
@@ -185,6 +186,13 @@ IPINFO_TOKEN = os.getenv("IPINFO_TOKEN")
 
 ACTIVE_USER_TIMEOUT = 100 # After 100s user being moved to recently active and from there -> in-active
 RECENTLY_ACTIVE_USER_TIMEOUT = 300
+
+
+# @sync api/models.py
+class ContactStatus(Enum):
+    untouched = 'Untouched'
+    in_progress = 'In-Progress'
+    completed = 'Completed'
 
 CONSTRAINT_CLEANUP_THRESHOLDS_WEEKLY = {
     'ACTIVE_USER': 4,

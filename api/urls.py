@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import ProfileView, UploadFileView, ProfilePageView, FeedView, SocialView, PreferencesView, ContactsView, subscribe_notifications, list_profiles, search_profile, validate_permissions, report_profile, validate, bookmark_profile, reach_profile, social_profile_pics, social_hit_log, analytics
+from .views import ProfileView, UploadFileView, ProfilePageView, FeedView, SocialView, PreferencesView, ContactsView, subscribe_notifications, contact_and_support, list_profiles, search_profile, validate_permissions, report_profile, validate, bookmark_profile, reach_profile, social_profile_pics, social_hit_log, analytics
 
 urlpatterns = [
     # path('/login')
@@ -24,6 +24,7 @@ urlpatterns = [
     path('social/', SocialView.as_view(), name='socials'),
 
     path('analytics/<str:mode>/', analytics, name='analytics'),
+    path('contact_and_support/', contact_and_support, name='contact'),
 
     path('validate/', validate, name='validate'),
     path('user_check_perm/', validate_permissions, name='checks if user has specific permissions'),

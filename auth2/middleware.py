@@ -18,7 +18,6 @@ class WebAuthMiddleware:
 
         if(not is_web_client):
             return self.get_response(request)
-
         access_token = request.COOKIES.get('access_token')
         if(access_token):
             request.META['HTTP_AUTHORIZATION'] = f"Bearer {access_token}"
@@ -34,9 +33,10 @@ class WebAuthMiddleware:
             refresh_token = request.COOKIES.get('refresh_token')
             if(refresh_token):
                 return HttpResponse(dumps({'error': True, 'message': 'Unauthorized', 'refresh': refresh_token_signer.sign_object({'ref': refresh_token}), 'code': 'ROTATE_ACCESS'}), status=401)
+
             cres = HttpResponse(dumps({'error': True, 'message': 'Unauthorized', 'code': 'REQUIRED_RELOGIN'}), status=401)       
-            cres.set_cookie('access_token', None, max_age=0, secure=True, httponly=True, samesite='Strict')
-            cres.set_cookie('refresh_token', None, max_age=0, secure=True, httponly=True, samesite='Strict')
+            cres.set_cookie('access_token', None, max_age=0, secure=True, httponly=True, samesite='Lax')
+            cres.set_cookie('refresh_token', None, max_age=0, secure=True, httponly=True, samesite='Lax')
             cres.set_cookie('stale_authenticated', None, max_age=0, secure=True, httponly=False, samesite='Lax')
             return cres
 

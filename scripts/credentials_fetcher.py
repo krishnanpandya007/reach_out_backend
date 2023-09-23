@@ -2,7 +2,6 @@ from django.conf import settings
 from django.utils import timezone
 from requests import get, post, patch
 from base64 import b64encode
-from instaloader import Instaloader
 from json import dumps
 from logging import getLogger
 
@@ -12,8 +11,8 @@ sys.path.append(settings.BASE_DIR)
 from global_utils.decorators import rotate_and_retry_on_400
 from constants import SOCIAL_INFO_FETCHER_BOT_NAME,SOCIAL_MEDIAS,PROFILE_PIC_BASE_PATH,OAUTH_CONFIGS
 from auth2.models import RawSnap, Social
+from reach_out_backend.settings import instaloader
 
-instaloader = Instaloader()
 logger = getLogger(__name__)
 
 
@@ -152,7 +151,7 @@ def get_meta_user_data(platform, access_token, take_raw_snap=False):
             'error': False,
             'profile_id': user_data_json['id'],
             'primary': user_data_json['username'],
-            'secondary': instaloader.get_profile_pic_url(user_data_json['username']),
+            'secondary': instaloader.download_profile(user_data_json['username'], profile_pic_only=True),
         }
 
     else:

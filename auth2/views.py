@@ -20,7 +20,7 @@ import sys
 from urllib.parse import unquote as decode_uri
 if(settings.BASE_DIR not in sys.path): sys.path.append(settings.BASE_DIR)
 from constants import SOCIAL_TOKEN_PROTECTOR_KEY, SOCIAL_TOKEN_PROTECTOR_SALT, EMAIL_BASIC_STRUCTURE, EMAIL_EMOJI_URL,TWILIO_ACCOUNT_SID,TWILIO_AUTH_TOKEN,TWILIO_PHONE_NO,EMAIL_REGEX,PHONE_REGEX,SOCIAL_MEDIAS,SOCIAL_OAUTH_LINKS,OAUTH_WEB_CLIENT_ID, OAUTH_WEB_CLIENT_SECRET, SOCIAL_LINKS_PREFIXES
-from global_utils.functions import get_oauth2_tokens_response, generate_otp, format_phone_number, is_valid_url
+from global_utils.functions import get_oauth2_tokens_response, generate_otp, format_phone_number, is_valid_url, google_user_info
 from global_utils.decorators import memcache
 from scripts.credentials_fetcher import get_social_access_token, get_social_user_data
 
@@ -51,7 +51,7 @@ class SignUpView(APIView):
                   assert phone is not None, "PhoneNo is required!"
 
                   try:
-                        phone = format_phone_number(phone, '+91')
+                        phone = format_phone_number(phone)
                   except Exception:
                         pass
 
@@ -107,7 +107,7 @@ class VerificationWithLoginView(APIView):
 
                   mode = request.data.get('mode', False)
                   
-                  assert mode in ['email', 'phone_no', 'social'], "Invalid Login mode"
+                  assert mode in ['email', 'phone_no', 'social', 'google_token'], "Invalid Login mode"
                   # email="krishnanpandya06@gmail.com"
 
                   if(mode == 'social'):
@@ -213,6 +213,21 @@ class VerificationWithLoginView(APIView):
                                           return Response({'error': False, 'message': 'unable to link social', 'redirect_app_path':  f"/link/socials/?social_link_status=error&social_link_msg=Error linking {platform} profile, Try again later."}, status=400)
                         print('Ono')
                         return Response({'error': True, 'message': 'Something went wrong'},status=400)
+                  elif mode == 'google_token':
+                        access_token = request.data.get('token', None)
+                        assert access_token != None, "token missing for authentication!"
+
+                        user_email = google_user_info(access_token, req=request)
+
+                        assert user_email != None, "Unable to retrieve user data."
+
+                        # if(not Profile.objects.filter(email=user_email).exists()):
+                        #       # Retrive that profile and send back access and refresh tokens
+                        target_uni_queryset = Profile.objects.filter(email=user_email)
+                        assert target_uni_queryset.exists(), 'UNKNOWN_GOOGLE_TOKEN_EMAIL'
+                        profile = target_uni_queryset.first()
+
+                        mode_identifier = user_email
 
                   else:
                         mode_identifier = request.data.get('mode_identifier', None)# phone => +91 2334-45,email
@@ -220,7 +235,7 @@ class VerificationWithLoginView(APIView):
 
                         assert (mode_identifier is not None) and (otp is not None), "missing mode extra params"
                         if(mode == 'phone_no'):
-                              mode_identifier = format_phone_number(mode_identifier, '+91')
+                              mode_identifier = format_phone_number(mode_identifier)
                         otp_valid = memcache.is_valid_otp(mode_identifier, otp)
                         assert otp_valid, "Invalid OTP"
 
@@ -286,7 +301,7 @@ class SendOTPView(APIView):
 
                         # Checking if that phone no. exists in DB
 
-                        identifier = format_phone_number(identifier, '+91')
+                        identifier = format_phone_number(identifier)
 
                   '''
                   We try to delete old OTP associated to given `identifier`
@@ -364,6 +379,7 @@ class SocialConnectionUrlBuilderView(APIView):
                   signed_state = platform + '@@' + signed_state
 
                   redirection_url = SOCIAL_OAUTH_LINKS[platform] + '&state=' + signed_state
+                  print('RED:', redirection_url)
 
                   return Response({'error': False, "message": 'Social connection URL builded!', 'socialRedirectUrl': redirection_url}, status=200) 
 
@@ -517,37 +533,58 @@ class WebSignInView(APIView):
                   mode_value = request.data.get('mode_value', None)
                   signin_code = request.data.get('signin_code', None)
 
-                  assert (mode and mode_value and signin_code), "Provide valid `mode` `mode_value` `signin_code`"
+                  assert mode, "Provide valid `mode` value"
 
                   if(mode == 'email'):
+                        assert (mode_value and signin_code), "Provide valid `mode` `mode_value` `signin_code`"
                         try:
                               profile = Profile.objects.get(email=mode_value)
                         except (Profile.DoesNotExist) as ne:
                               return Response({'error': True, 'message': 'No Profile found with provided email'}, status=404)   
-                  elif (mode == 'phone_no'):
-                        mode_value = format_phone_number(mode_value, '+91')
+                  elif (mode == 'phone'):
+                        assert (mode_value and signin_code), "Provide valid `mode` `mode_value` `signin_code`"
+
+                        mode_value = format_phone_number(mode_value)
                         try:
                               target_phone = Phone.objects.get(number=mode_value)
                               profile = Profile.objects.get(phone=target_phone)
                         except (Profile.DoesNotExist, Phone.DoesNotExist) as ne:
                               return Response({'error': True, 'message': 'No Profile found with provided Phone No.'}, status=404)   
-                              
+                  elif mode == 'google_token':
+
+                        access_token = request.data.get('token', None)
+                        assert access_token != None, "token missing for authentication!"
+
+                        user_email = google_user_info(access_token, req=request)
+
+                        assert user_email != None, "Unable to retrieve user data."
+
+                        # if(not Profile.objects.filter(email=user_email).exists()):
+                        #       # Retrive that profile and send back access and refresh tokens
+                        target_uni_queryset = Profile.objects.filter(email=user_email)
+                        print('Gotten set: ', target_uni_queryset)
+                        assert target_uni_queryset.exists(), 'UNKNOWN_GOOGLE_TOKEN_EMAIL'
+                        profile = target_uni_queryset.first()
+                        assert not profile.is_staff, 'UNKNOWN_GOOGLE_TOKEN_EMAIL'
+
+                        mode_value = user_email          
                   else:
-                        return Response({'error': True, 'message': 'Invalid Mode'},status=400)
+                        return Response({'error': True, 'message': f'Invalid Mode: "{mode}"'},status=400)
 
                   # correct_code = memcache.get('WEB_SIGNIN_CODE',str(profile.pk)) 
 
                   # assert correct_code is not None, "Please generate signIn code first!"
                   # assert signin_code == correct_code, "Invalid signIn code"
-
+                  print('Ahha:', mode_value)
                   response = get_oauth2_tokens_response(request, mode_value, c_id=OAUTH_WEB_CLIENT_ID, c_secret=OAUTH_WEB_CLIENT_SECRET)
-
+                  print('AA:', response)
+                  print('Lol::', getattr(settings, 'OAUTH2_PROVIDER', {})['REFRESH_TOKEN_EXPIRE_SECONDS'])
                   assert response.status_code == 200, "Try again later" # unable to fetch access,refreshTokten
 
                   data = loads(response.content)
-                  response.set_cookie('access_token', data['access_token'], max_age=data['expires_in'], secure=False, httponly=True, samesite='Strict')
-                  response.set_cookie('refresh_token', data['refresh_token'], max_age=getattr(settings, 'OAUTH2_PROVIDER', {})['REFRESH_TOKEN_EXPIRE_SECONDS'], secure=False, httponly=True, samesite='Strict')
-                  response.set_cookie('stale_authenticated', 'true', max_age=getattr(settings, 'OAUTH2_PROVIDER', {})['REFRESH_TOKEN_EXPIRE_SECONDS'], secure=False, httponly=False, samesite='Lax')
+                  response.set_cookie('access_token', data['access_token'], max_age=data['expires_in'], secure=True, httponly=True, samesite='Strict', domain='reachout.org.in')
+                  response.set_cookie('refresh_token', data['refresh_token'], max_age=getattr(settings, 'OAUTH2_PROVIDER', {})['REFRESH_TOKEN_EXPIRE_SECONDS'], secure=True, httponly=True, samesite='Strict', domain='reachout.org.in')
+                  response.set_cookie('stale_authenticated', 'true', max_age=getattr(settings, 'OAUTH2_PROVIDER', {})['REFRESH_TOKEN_EXPIRE_SECONDS'], secure=True, httponly=False, samesite='Lax', domain='reachout.org.in')
 
                   response.content = b''
                   return response
@@ -568,9 +605,10 @@ class WebLogoutView(APIView):
 
       def get(self, request):
             cres = HttpResponse(status=200)       
-            cres.set_cookie('access_token', None, max_age=0, secure=True, httponly=True, samesite='Strict')
-            cres.set_cookie('refresh_token', None, max_age=0, secure=True, httponly=True, samesite='Strict')
-            cres.set_cookie('stale_authenticated', None, max_age=0, secure=True, httponly=False, samesite='Lax')
+            cres.set_cookie('access_token', None, max_age=0, secure=True, httponly=True, samesite='Strict', domain='reachout.org.in')
+            cres.set_cookie('refresh_token', None, max_age=0, secure=True, httponly=True, samesite='Strict', domain='reachout.org.in')
+            cres.set_cookie('stale_authenticated', None, max_age=0, secure=True, httponly=False, samesite='Lax', domain='reachout.org.in')
+
             return cres
 
             

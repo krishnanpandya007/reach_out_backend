@@ -104,16 +104,17 @@ REST_FRAMEWORK = {
     
 }
 
-# CORS_ALLOW_CREDENTIALS = True
-# CORS_ALLOWED_ORIGINS = [
-#     'http://192.168.4.153:3000',
-#     'https://reachout.org.in',
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    'http://192.168.4.153:3000',
+    'https://reachout.org.in',
+    'https://www.reachout.org.in',
 
-# ]
+]
 
-# CORS_ALLOW_HEADERS = list(default_headers) + [
-#     "raw-platform",
-# ]
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "raw-platform",
+]
 
 OAUTH2_PROVIDER = {
     'ACCESS_TOKEN_EXPIRE_SECONDS': 60*60*2, # Valid for about 2 hour
@@ -185,8 +186,6 @@ ADMINS = [("Krishnan Pandya","krishnanpandya06@gmail.com"),]
 EMAIL_SUBJECT_PREFIX = "[ReachOut - Backend] "
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
-print('asdadsdsaadsadsads')
-print(os.getenv('DJANGO_DB_PASSWORD'))
 DATABASES = {
     # 'default': {
     #     'ENGINE': 'django.db.backends.sqlite3',
@@ -225,8 +224,8 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 EMAIL_HOST_USER = "server.reachout@gmail.com"
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
-print(EMAIL_HOST_PASSWORD)
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_SECRET")
+# print(EMAIL_HOST_PASSWORD)
 # SESSION_COOKIE_DOMAIN = "backend-61489.reachout.org.in"
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
@@ -262,3 +261,7 @@ AUTH_USER_MODEL = 'auth2.Profile'
 
 import concurrent.futures
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+
+from instaloader import Instaloader
+instaloader = Instaloader()
+instaloader.load_session_from_file('krishnanpandya', filename='/home/krishnan/.config/instaloader/session-krishnanpandya')

@@ -11,7 +11,7 @@ import sys
 import urllib.parse
 from requests import get, post
 if(settings.BASE_DIR not in sys.path): sys.path.append(settings.BASE_DIR)
-
+from auth2.models import GoogleAccount
 from constants import OAUTH_CORE_CLIENT_ID, OAUTH_CORE_CLIENT_SECRET, IPINFO_TOKEN, DEFAULT_CLIENT_COUNTRY_CODE
 
 def get_staff_password(username):
@@ -134,3 +134,38 @@ def is_valid_url(url):
         return all([parsed.scheme, parsed.netloc])
     except:
         return False
+
+def google_user_info(access_token:str, req=None):
+
+    try:
+        
+        response = get('https://www.googleapis.com/oauth2/v1/userinfo', headers={'Authorization': f"Bearer {access_token}"})
+
+        if(response.status_code == 200):
+            # Something went wrong
+            user_data = response.json()
+            email = user_data['email']
+            del user_data['email']
+
+            google_account, created = GoogleAccount.objects.get_or_create(email=email, defaults={'data': user_data})
+            if(not created):
+                # Update with latest info.
+                google_account.data = user_data
+                google_account.save()
+
+            return email
+
+        elif (response.status_code == 401):
+            # Maybe wrong access_token given
+            print('----------------------------------------')
+            print('MALLECIOUS_TOKEN_DETECTED:', access_token)
+            print('CLIENT_IP:', get_client_ip(req))
+            print('CLIENT_INFO:', req.META)
+            print('----------------------------------------')
+
+        return None
+        
+
+    except Exception as e:
+        print('ERROR_FETCHING_GOOGLE_ACCOUNT_INFO:', e)
+        return None

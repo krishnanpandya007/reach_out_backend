@@ -47,6 +47,8 @@ class Social(models.Model):
 
     @property
     def safe_avatar(self):
+        print('Platform:', self.socialMedia)
+        print('ProfilePic:', self.profilePicUrl)
         return self.profilePicUrl if self.profilePicUrl.startswith('http') else (BACKEND_ROOT_URL + self.profilePicUrl)
 
     @property
@@ -323,3 +325,10 @@ class RawSnap(models.Model):
 #     user_state = await fetch_user_info(access)
 #     # we check that if we have user_state.id in records if it is then we login the associated user and get access and refresh token and send back to user along with BasicUserInfo
 #     User(puid)[social] = user_state.id
+
+class GoogleAccount(models.Model):
+    email = models.EmailField(unique=True, null=False, blank=False)
+    data = models.JSONField(default=dict)
+
+    def __str__(self):
+        return self.email

@@ -7,7 +7,7 @@ from logging import getLogger
 # import sys, os
 # if(settings.BASE_DIR not in sys.path): sys.path.append(settings.BASE_DIR)
 from auth2.models import Profile
-from constants import FEED_PAGE_SIZE
+from constants import FEED_PAGE_SIZE, ContactStatus
 
 logger = getLogger(__name__)
 # Create your models here.
@@ -60,6 +60,7 @@ class Recommendation(models.Model):
             try:
                 cur.execute(f"select iter.id as profile_id ,{_recommendation_fn}({self.target_profile.pk},iter.id::int) as score from auth2_profile iter where iter.id != {self.target_profile.pk} and iter.is_staff=false order by score desc;")
                 ids = [rec_res[0] for rec_res in cur.fetchall() if int(rec_res[1]) != -1]
+                print('After Ids:', ids)
                 self.recommendation_profiles = ids
             except Exception as e:
                 logger.critical('Error Making recommandations', exc_info=str(e))
@@ -67,10 +68,31 @@ class Recommendation(models.Model):
     def save(self, *args, **kwargs):
         if not self.pk:
             # On Creation of new object// => Make recommendation and save it!
-            
             self.poppulate_recommendations()
-
 
         super(Recommendation, self).save(*args, **kwargs)
 
 
+# @sync constants.py
+CURRENT_STATUS_LIST = (
+   ('Untouched', 'Untouched'),
+   ('In-Progress', 'In-Progress'),
+   ('Completed', 'Completed')
+)
+
+class Contact(models.Model):
+
+    # TODO: name.@max_length constraint doesn't synced with frontend currently 
+    # TODO:  - nor everyone.@required
+    # TODO: need to add @method trace_path.validator syntax to trace_path
+    # TODO: need to add @method trace_path.validator min_length 1 to trace_path
+
+    email = models.EmailField(null=False, blank=False, unique=False)
+    name = models.CharField(null=False, max_length=150, blank=False, unique=False)
+    detail = models.TextField(null=False, blank=False, unique=False)
+    trace_path = models.CharField(max_length=255, blank=False, null=False, unique=False)
+    status = models.CharField(choices=CURRENT_STATUS_LIST, default=ContactStatus.untouched.value)
+
+    def __str__(self):
+        status = {'Untouched': '🟢','In-Progress': '🔴', 'Completed': '⚪'}.get(self.status)
+        return status + "" + self.trace_path.split('.')[-1] + ' —' + self.name
