@@ -1,4 +1,5 @@
 import os 
+from enum import Enum
 
 BACKEND_ROOT_URL = "http://192.168.32.153:8000"
 
@@ -55,7 +56,6 @@ OAUTH_CONFIGS = {
         'client_secret': "607b4e44150b8ac1df58aee9806cc9b5",
         'refresh_access_token_endpoint':"https://www.linkedin.com/oauth/v2/accessToken",
         'redirect_uri': 'https://reachout.org.in/auth/redirect/',
-
         'access_retrieval_endpoint': "https://graph.facebook.com/oauth/access_token",
         'info_retrieval_endpoint': "https://graph.facebook.com/me?fields=id,name,picture&access_token=%s" #Remaining
     },
@@ -95,6 +95,9 @@ OAUTH_CONFIGS = {
 
 }
 
+# Make sure this labels are as mentioned as in reach_out_backend/urls.py for any app
+TRACE_URL_PREFIXES = ['auth2', 'api', 'payment']
+
 SOCIAL_LINKS_PREFIXES = {
 
     'Discord': {
@@ -130,31 +133,42 @@ PROFILE_PREFERENCES_CONFIG = {
 }
 
 DEFAULT_CLIENT_COUNTRY_CODE = '+91'
+MAX_CLIENT_END_HIT_ADDON = 5 # extra 5 seconds addon if client request resource just before expiration, but response can be outside valid area
 
+'''
+WE are using UUIDv4 over UUIDv1
+ - Because we possibly are generating multiple UUIDs over same time
+ - We dont have many machines (multiple backend server) as uuid using system speicifc info to generate
 
+Blueprint: 
+    - QR session on client side finishes at (60*5) or (MENTIONED_TIME - MAX_CLIENT_END_HIT_ADDON)
+'''
 CACHE_TYPES_LIFETIME = {
     'OTP': 60*5, # identifier: OTP:email/phone
     'WEB_SIGNIN_CODE': 60*2, # identifier: WEB_SIGNIN_CODE:profile_id
     'SLOWDOWN_FOLLOWER': 70, # identifier: SLOWDOWN_FOLLOWER:profile_id -> Slowdown sending notification
     'SLOWDOWN_SOCIAL_TAP': 60*60*2, # identifier: SLOWDOWN_FOLLOWER:profile_id -> Slowdown sending notification for 2H 
+    'LOGIN_QR_SESSION': 60*5 + MAX_CLIENT_END_HIT_ADDON #identifier: LOGIN_QR_SESSION:UUID -> 
 } 
 
-OAUTH_CORE_CLIENT_ID = os.getenv('OAUTH_CORE_CLIENT_ID', 'wLePfApqei6CzBbvBqgHiuyYOmj6JpjSEWrVTuSt')
-OAUTH_CORE_CLIENT_SECRET = os.getenv('OAUTH_CORE_CLIENT_SECRET', 'L6SofWPmNBvmXWiV2Baa39Nhj57raQo6BIe3wenETd1PZvtRRFUtE5njA1yiQwXtwGlUTJ1p4b7Ocx6zHX2TqG9IWcs1SvYjwZDfdnr5sKUtdfPZ7zZmy8a8Drji4oLB')
+LOGIN_QR_SESSION_TOKEN_LIFETIME = 60*1 + MAX_CLIENT_END_HIT_ADDON
 
-OAUTH_WEB_CLIENT_ID = os.getenv('OAUTH_WEB_CLIENT_ID', '8ox8Sy1lEjiHIARgvcUWXzHyQnEyIY1Pmu0h4B0Y')
-OAUTH_WEB_CLIENT_SECRET = os.getenv('OAUTH_WEB_CLIENT_SECRET', '1lAaF2SBEin07zxtN1tQt9zReGSD6j1tDcc2ZUpXtWRs7iJHzwUAowGPk5o3Px35RM6jfkDvy4hxY4zBqsqwbdIqf9t7iAhhyY9df9lmAUPQJdkNLHlphO88v6nP8Uta')
+OAUTH_CORE_CLIENT_ID = os.getenv('OAUTH_CORE_CLIENT_ID')
+OAUTH_CORE_CLIENT_SECRET = os.getenv('OAUTH_CORE_CLIENT_SECRET')
 
-SOCIAL_TOKEN_PROTECTOR_KEY = os.getenv('SOCIAL_TOKEN_PROTECTOR_KEY', 'mysecretprotectorKey')
-SOCIAL_TOKEN_PROTECTOR_SALT = os.getenv('SOCIAL_TOKEN_PROTECTOR_SALT', 'mysecretprotectordSalt')
+OAUTH_WEB_CLIENT_ID = os.getenv('OAUTH_WEB_CLIENT_ID')
+OAUTH_WEB_CLIENT_SECRET = os.getenv('OAUTH_WEB_CLIENT_SECRET')
+
+SOCIAL_TOKEN_PROTECTOR_KEY = os.getenv('SOCIAL_TOKEN_PROTECTOR_KEY')
+SOCIAL_TOKEN_PROTECTOR_SALT = os.getenv('SOCIAL_TOKEN_PROTECTOR_SALT')
 
 USERNAME_REGEX = r"^[a-zA-Z0-9]+$" #Alphanumeric Only
 EMAIL_REGEX = r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$"
 PHONE_REGEX = r"^\+\d{2,3}\s\d{5}\-\d{5}$"
 
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID","AC8810f9ddb5fe0b0a61da868d38a441ca")
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN","42d17df77301872f18ca7c8b33cefb8e")
-TWILIO_PHONE_NO = os.getenv("TWILIO_PHONE_NO","+15095120906")
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+TWILIO_PHONE_NO = os.getenv("TWILIO_PHONE_NO")
 
 PAYPAL_CONFIG = {
     'CLIENT_ID': "ASlAoLEU-UqcfUceKTXaJoSN7RNr3uQEEXbUl-EveheEAsfsZvuS9cYZw969PzgM9jgT1U9G9SxRyFns",
@@ -175,17 +189,30 @@ ANALYTICS = {
     }
 }
 
-IPINFO_TOKEN = os.getenv("IPINFO_TOKEN", "c48d9147f45dc8")
+IPINFO_TOKEN = os.getenv("IPINFO_TOKEN")
 
 
 
 ACTIVE_USER_TIMEOUT = 100 # After 100s user being moved to recently active and from there -> in-active
 RECENTLY_ACTIVE_USER_TIMEOUT = 300
+MAX_ACTIVE_LOGIN_QR_SESSIONS = 50
+
+
+LOGIN_QR_COLORS = {
+    'BACKGROUND': '#3CCF4E',
+    'FILL': 'white'
+}
 
 CONSTRAINT_CLEANUP_THRESHOLDS_WEEKLY = {
     'ACTIVE_USER': 4,
     'RECENTLY_ACTIVE_USER': 4,
 }
+
+# @sync api/models.py
+class ContactStatus(Enum):
+    untouched = 'Untouched'
+    in_progress = 'In-Progress'
+    completed = 'Completed'
 
 SEARCH_PAGE_SIZE = 100 # At a time user can only have 100 related users
 '''
@@ -207,7 +234,7 @@ LAST USD UPDATED: 21-May-2023
 #     {
 #         'duration_in_days': 28,
 #         'amount_in_inr': 19.00,
-#         'amount_in_usd': 0.35, # []Convertion rate: 82USD + FOERIGN_ADDON(10Rs)
+#         'amount_in_usd': 0.35, # [] Conversion rate: 82USD + FOREIGN_ADDON(10Rs)
 #         'tag': None
 #     },
 #     {

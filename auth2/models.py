@@ -309,6 +309,28 @@ class AnonymousPhoneNo(models.Model):
 
 '''
 
+# @sync global_utils/functions.py detect_platform_from_user_agent()
+AVAILABLE_LOGIN_PLATFORMS = (
+   ('Web', 'web'),
+   ('Android', 'android'),
+   ('Ios', 'ios'),
+   ('Unknown', 'unknown')
+)
+
+class LoginHistory(models.Model):
+    profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='login_history')
+    client_ip = models.GenericIPAddressField(null=False, blank=False)
+    agent = models.CharField(max_length=200, null=False, blank=False)
+    detected_platform = models.CharField(choices=AVAILABLE_LOGIN_PLATFORMS, null=False, blank=False, max_length=10)
+    logged_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-logged_at']
+
+    def __str__(self):
+        return self.profile.get_full_name() + f" ({self.detected_platform}) : " + str(self.client_ip)
+
+
 class RawSnap(models.Model):
 
     snap_type = models.CharField(max_length=45, unique=False) # Ex.. RedditAuthResponse

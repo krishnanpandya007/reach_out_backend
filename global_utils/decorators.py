@@ -88,7 +88,9 @@ class memcache:
             print("`cache_type` not whitelisted! maybe add into constants/CACHE_TYPES_LIFETIME")
             return None
         try:
-            data = client.delete("%s:%s" % (cache_key.replace(' ', '-'), cache_type))
+            
+            data = client.delete("%s:%s" % (cache_key.replace(' ', '-'), cache_type), noreply=False)
+
         except Exception as e:
             print("[FAIL_DELETE_CACHE_%s]: " % (cache_type.upper()))
             return None

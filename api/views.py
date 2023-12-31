@@ -24,7 +24,7 @@ if(settings.BASE_DIR not in sys.path): sys.path.append(settings.BASE_DIR)
 
 from .predictor import predict_standard_posts, predict_engage_posts 
 from auth2.models import Profile, Phone, AnalyticProfile, Social, Preference
-from api.models import Recommendation
+from api.models import Recommendation, Contact
 from global_utils.models import NotProvided
 from auth2.serializers import ProfilePageSerializer, ProfileSerializer, ProfilePreferencesSerializer
 from constants import UPLOAD_FILE_KEYS_WHITELIST, DEFAULT_CLIENT_COUNTRY_CODE, SOCIAL_THRESHOLD_UPDATE_DURATION, PROFILE_PREFERENCES_CONFIG, SOCIAL_MEDIAS, IPINFO_TOKEN, BACKEND_ROOT_URL, ANALYTICS, SEARCH_PAGE_SIZE
@@ -1149,3 +1149,30 @@ def list_profiles(request, *args, **kwargs):
 
     except Exception:
         return Response({'error': True, 'message': 'Something went wrong!'},status=500)
+
+@api_view(['POST'])
+@permission_classes([AllowAny,])
+def contact_and_support(request, *args, **kwargs):
+    # TODO: In frontend add dynamic form if user is authenticated, he/she doesn't need to provide personal details
+
+    try:
+
+        trace_path = request.data.get('trace_path', None)
+        other_reason_title: request.data.get('otherReasonTitle', None)
+        info = request.data.get('info', None)
+
+        assert isinstance(trace_path, list) and len(trace_path) > 0 and (isinstance(info, dict)) and all([required_param in info.keys() for required_param in ['email', 'firstName', 'lastName', 'descr']]), "Provide valid trace path and all info."
+
+        if(trace_path[-1] == 'Other'):
+            assert isinstance(other_reason_title, str) , "Provide valid `Other` reason title!"
+            trace_path.append(other_reason_title)
+
+        Contact.objects.create(email=info['email'], name=f"{info['firstName'] or ''} {info['lastName'] or ''}", detail=info['descr'], trace_path='.'.join(trace_path).replace(' ', '-'))
+
+        return Response({'error': False, 'message': 'We\'ll look into it ASAP!'}, status=200)
+
+    except AssertionError as ae:
+        return Response({'error': True, 'message': str(ae)},status=400)
+
+    except Exception:
+        return Response({'error': True, 'message': 'Something went wrong!'},status=500) 

@@ -1,9 +1,10 @@
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.core.exceptions import ValidationError
 from django.core.signing import Signer, BadSignature
 from django.conf import settings
 from django.http import HttpResponse
 from django.core.mail import send_mail
+from django.shortcuts import get_object_or_404
 
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
@@ -13,16 +14,19 @@ from django.utils import timezone
 from .models import Profile, Phone, Social
 from twilio.rest import Client
 import logging
-from json import loads
+from json import loads, dumps
+from uuid import uuid4
+from time import time as get_epochs, sleep
 # from oauth2_provider.settings import refre
 from re import match as regex_match
 import sys
 from urllib.parse import unquote as decode_uri
 if(settings.BASE_DIR not in sys.path): sys.path.append(settings.BASE_DIR)
-from constants import SOCIAL_TOKEN_PROTECTOR_KEY, SOCIAL_TOKEN_PROTECTOR_SALT, EMAIL_BASIC_STRUCTURE, EMAIL_EMOJI_URL,TWILIO_ACCOUNT_SID,TWILIO_AUTH_TOKEN,TWILIO_PHONE_NO,EMAIL_REGEX,PHONE_REGEX,SOCIAL_MEDIAS,SOCIAL_OAUTH_LINKS,OAUTH_WEB_CLIENT_ID, OAUTH_WEB_CLIENT_SECRET, SOCIAL_LINKS_PREFIXES
-from global_utils.functions import get_oauth2_tokens_response, generate_otp, format_phone_number, is_valid_url
+from constants import SOCIAL_TOKEN_PROTECTOR_KEY, CACHE_TYPES_LIFETIME, MAX_ACTIVE_LOGIN_QR_SESSIONS, LOGIN_QR_SESSION_TOKEN_LIFETIME, SOCIAL_TOKEN_PROTECTOR_SALT, EMAIL_BASIC_STRUCTURE, EMAIL_EMOJI_URL,TWILIO_ACCOUNT_SID,TWILIO_AUTH_TOKEN,TWILIO_PHONE_NO,EMAIL_REGEX,PHONE_REGEX,SOCIAL_MEDIAS,SOCIAL_OAUTH_LINKS,OAUTH_WEB_CLIENT_ID, OAUTH_WEB_CLIENT_SECRET, SOCIAL_LINKS_PREFIXES
+from global_utils.functions import get_oauth2_tokens_response, get_client_ip, generate_otp, format_phone_number, generate_png_uri_scheme
 from global_utils.decorators import memcache
 from scripts.credentials_fetcher import get_social_access_token, get_social_user_data
+from staff.models import Constraint
 
 logger = logging.getLogger(__name__)
 social_token_signer = Signer(SOCIAL_TOKEN_PROTECTOR_KEY, salt=SOCIAL_TOKEN_PROTECTOR_SALT)
@@ -573,7 +577,261 @@ class WebLogoutView(APIView):
             cres.set_cookie('stale_authenticated', None, max_age=0, secure=True, httponly=False, samesite='Lax')
             return cres
 
+@api_view(['GET'])
+@permission_classes([AllowAny,])
+def create_login_qr_session(request):
+    try:
+
+      session_payload = {
+            'client_ip': get_client_ip(request),
+            'qrs_to_epochs': {},
+            'detected_profile': None, # <- hook that is responsible for long pooling
+            'listening': False
+      }
+
+      session_key = uuid4().hex
+
+      result = memcache.manual_set('LOGIN_QR_SESSION', session_key, dumps(session_payload))
+
+      assert result != None, "Something went wrong!"
+      
+      try:
+
+            with transaction.atomic():
+
+                  internal_constraint = Constraint.objects.select_for_update().get(family='active_qr_sessions')
+                  
+                  active_qr_sessions = internal_constraint.handle.get('number', 0)
+
+                  if(active_qr_sessions > MAX_ACTIVE_LOGIN_QR_SESSIONS):
+                        print('Stopped overflowing maximum login sessions')
+                        transaction.rollback()
+                        return Response({'error': True, 'message': 'login_sessions_full'},status=400)
+                  
+                  internal_constraint.handle['number'] = internal_constraint.handle.get('number', 0) + 1
+                  
+                  internal_constraint.save()
+
+      except IntegrityError as ie:
+            print('This is my Integrity Error: ', ie)
+            transaction.rollback()
+            return Response({'error': True, 'message': 'Something went wrong 😔'},status=500)
+
+      finally:
             
+            transaction.set_autocommit(True)
+      print("Created::", session_key)
+      # Successfully set-ed value in memcache & updated counter and checked in-bounded session number
+      return Response({'error': True, 'message': 'Session created successfully!', "session": f"{session_key}:{str(int(get_epochs()))}"}, status=200)
+
+    except AssertionError as ae:
+      print(f"create_login_qr_session:[OUTER_EXC]:", ae)  
+      return Response({'error': True, 'message': str(ae)},status=400)
+
+    except Exception as e:
+      logging.info(f"create_login_qr_session:[OUTER_EXC]:", e)
+      return Response({'error': True, 'message': 'Something went wrong 😔'},status=500)
+         
+@api_view(['POST'])
+@permission_classes([AllowAny,])
+def listen_login_qr_session(request, *args, **kwargs):
+      # Max. client can long-pool any session for 5minutes+addon
+      try:
+
+            session_id = kwargs.get('session_id', None)
+            print('Debug_Session_Id: ', session_id)
+
+            assert isinstance(session_id, str) and memcache.get('LOGIN_QR_SESSION', session_id) != None, "Session Invalid/Expired."
+
+            session_payload = memcache.get('LOGIN_QR_SESSION', session_id)
+
+            session_payload = loads(session_payload)
+
+            assert not session_payload['listening'], "already_listened"
+            '''
+            If above assertionError received on client:
+                  - Some process already listening
+                  - If its not you, close current window/tab and open this page in new window/tab
+            '''
+
+            session_payload['listening'] = True
+
+            result = memcache.manual_set('LOGIN_QR_SESSION', session_id, dumps(session_payload))
+
+            assert result != None, "Something went wrong!"            
+
+            for i in range(CACHE_TYPES_LIFETIME['LOGIN_QR_SESSION']):
+
+                  session_payload = memcache.get('LOGIN_QR_SESSION', session_id)
+
+                  assert session_payload != None, "Session may be expired!"
+
+                  session_payload = loads(session_payload)
+
+                  if(True):
+
+                  # if(isinstance(session_payload['detected_profile'], str)):
+                        # We've got it
+                        # send authentication cookie
+                        response = get_oauth2_tokens_response(request, 'grapesync@gmail.com', c_id=OAUTH_WEB_CLIENT_ID, c_secret=OAUTH_WEB_CLIENT_SECRET)
+                        # response = get_oauth2_tokens_response(request, session_payload['detected_profile'], c_id=OAUTH_WEB_CLIENT_ID, c_secret=OAUTH_WEB_CLIENT_SECRET)
+
+                        assert response.status_code == 200, "Try again later" # unable to fetch access,refreshTokten
+
+                        data = loads(response.content)
+                        response.set_cookie('access_token', data['access_token'], max_age=data['expires_in'], secure=False, httponly=True, samesite='Strict')
+                        response.set_cookie('refresh_token', data['refresh_token'], max_age=getattr(settings, 'OAUTH2_PROVIDER', {})['REFRESH_TOKEN_EXPIRE_SECONDS'], secure=False, httponly=True, samesite='Strict')
+                        response.set_cookie('stale_authenticated', 'true', max_age=getattr(settings, 'OAUTH2_PROVIDER', {})['REFRESH_TOKEN_EXPIRE_SECONDS'], secure=False, httponly=False, samesite='Lax')
+
+                        response.content = b''
+                        return response
+
+                  sleep(1)
+
+            return Response({"error": True, "message": "session_timeout"}, status=400)
+      
+      except AssertionError as ae:
+            print("Error while listening Login QR session:", ae)
+            return Response({'error': True, 'message': str(ae)},status=400)
+
+      except Exception as e:
+            print("Error while listening Login QR session:", e)
+
+            return Response({'error': True, 'message': 'Something went wrong 😔'},status=500)
+            
+@api_view(['GET'])
+@permission_classes([AllowAny,])
+def generate_qr_data(request, *args, **kwargs):
+
+    try:
+
+      session_id = kwargs.get('session_id', None)
+      print("Generating QR for session: ", session_id)
+      # print('Debug_Session_Id: ', session_id)
+
+      assert isinstance(session_id, str), "Invalid Session Id"
+
+      session_payload = memcache.get('LOGIN_QR_SESSION', session_id)
+
+      assert session_payload != None, "Invalid/Expired Session Id"
+
+      session_payload = loads(session_payload)
+
+      new_qr_data = uuid4().hex
+
+      session_payload['qrs_to_epochs'][new_qr_data] = int(get_epochs())
+
+      result = memcache.manual_set('LOGIN_QR_SESSION', session_id, dumps(session_payload))
+
+      assert result != None, "Something went wrong!"
+
+      img_data = generate_png_uri_scheme(f"{session_id}:{new_qr_data}")
+
+      assert img_data != None, "Something went wrong while generating qr image!"
+
+      return Response({"error": True, "message": "Login QR generated!", "qr_image_data": img_data}, status=200)
+
+    except AssertionError as ae:
+      print('[ERROR_GENERATING_QR]:', ae)
+      return Response({'error': True, 'message': str(ae)},status=400)
+
+    except Exception as e:
+        print(f"Something went wrong by generating login QR data: {e = } ")
+        return Response({'error': True, 'message': 'Something went wrong 😔'},status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated,])
+def resolve_login_qr_session(request, *args, **kwargs):
+
+      try:
+            
+            session_id = kwargs.get('session_id', None)
+
+            token_id = request.data.get('token_id', None)
+            print(1)
+            assert isinstance(session_id, str) and isinstance(token_id, str), "Invalid Session Id / Token Id"
+            print(1)
+
+            session_payload = memcache.get('LOGIN_QR_SESSION', session_id)
+            print(1)
+
+            assert session_payload != None, "Invalid/Expired Session Id"
+            print(1)
+
+            session_payload = loads(session_payload)
+            print(1)
+
+            # check if token exists on that session
+            assert (int(get_epochs()) - session_payload['qrs_to_epochs'].get(token_id, 0))/60 < LOGIN_QR_SESSION_TOKEN_LIFETIME, "qr_invalid_or_expired"
+            print(1)
+
+            session_payload['detected_profile'] = request.user.email
+            print(1)
+
+            result = memcache.manual_set('LOGIN_QR_SESSION', session_id, dumps(session_payload))
+            print(1)
+
+            assert result != None, "Something went wrong!"
+            print(1)
+
+            return Response({"error": True, "message": "Session removed!"}, status=200)
+            print(1)
+
+      except AssertionError as ae:
+            print(f"Something went wrong: {ae = } ")
+
+            return Response({'error': True, 'message': str(ae)},status=400)
+
+      except Exception as e:
+            print(f"Something went wrong by verifying login QR data: {e = } ")
+
+            return Response({'error': True, 'message': 'Something went wrong 😔'},status=500)
+                
+# Below 'POST' method is required as browser's Beacon request only supports POST request till now
+@api_view(['POST'])
+@permission_classes([AllowAny,])
+def destroy_login_qr_session(request, *args, **kwargs):
+
+    try: 
+          
+      session_id = kwargs.get('session_id', None)
+
+      assert isinstance(session_id, str), "Invalid Session Id"
+
+      result = memcache.delete('LOGIN_QR_SESSION', session_id)
+
+      assert result != None, "Session not found!"
+
+      '''
+      TODO: Maybe before removing, we can store it for backtrail/backogs for future
+      '''
+      try:
+
+            with transaction.atomic():
+
+                  internal_constraint = Constraint.objects.get(family='active_qr_sessions')
+                  
+                  internal_constraint.handle['number'] = internal_constraint.handle.get('number', 0) - 1
+                  
+                  internal_constraint.save()
+
+      except IntegrityError:
+            print('ass')
+            transaction.rollback()
+            return Response({'error': True, 'message': 'Something went wrong 😔'},status=500)
+
+      return Response({"error": True, "message": "Session removed!"}, status=200)
+
+    except AssertionError as ae:
+      
+      return Response({'error': True, 'message': str(ae)},status=400)
+
+    except Exception as e:
+        print('ONO::', e)
+        return Response({'error': True, 'message': 'Something went wrong 😔'},status=500)
+
+            
+      
 
 # class SocialTokenBasedRedirectionView(APIView):
 

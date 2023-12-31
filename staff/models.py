@@ -4,6 +4,7 @@ from django.db import models
 WHITELISTED_CONSTRAINTS_FAMILIES = [
     ('active_users', 'Active Users'),
     ('recently_active_users', 'Recently Active Users'),
+    ('active_qr_sessions', "Active QR sessions")
 ]
 
 class Constraint(models.Model):
@@ -17,9 +18,9 @@ class Constraint(models.Model):
     }
     added_at: Date 
 
-    -----------------
-    bla bla bla(s)
-    -----------------
+    +------------------+
+    |  bla bla bla(s)  |
+    +------------------+
     * This model specifically used to store results for any analytics job.
 
     * The reason behind putting entire JSON field cover just for 'value' key is that we dont know the datatype it supposed to be hold.

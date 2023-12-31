@@ -3,6 +3,7 @@ from django.conf import settings
 import sys
 if(settings.BASE_DIR not in sys.path): sys.path.append(settings.BASE_DIR)
 from global_utils.functions import get_client_ip
+from constants import TRACE_URL_PREFIXES
 
 class UserStatsUpdationMiddleware:
 
@@ -18,12 +19,19 @@ class UserStatsUpdationMiddleware:
 
         response = self.get_response(request)
 
-        current_user = request.user
-        if request.user.is_authenticated:
-            now = timezone.now()
-            current_user.raw_ip = get_client_ip(request)
-            current_user.last_seen = now
-            current_user.save()
-
+        if(len(request.path.split('/')) > 0 or request.path.split('/')[0] not in TRACE_URL_PREFIXES):
+            # Only tracing whitelisted paths
+            return response
+        try:
+            current_user = request.user
+            if request.user.is_authenticated:
+                now = timezone.now()
+                current_user.raw_ip = get_client_ip(request)
+                current_user.last_seen = now
+                current_user.save()
+        except Exception as e:
+            # Maybe we ran out of limit, or xyz reasons raise error
+            print('Unable to log: api/middleware.py/UserStatsUpdationMiddleware: ', e)
+            pass
 
         return response

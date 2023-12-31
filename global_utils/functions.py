@@ -1,6 +1,7 @@
 from os import getenv
 from django.db import transaction
 from django.conf import settings
+from django.contrib.auth import authenticate as core_authenticate
 from django.http import HttpResponse
 from oauth2_provider.views import TokenView
 
@@ -9,10 +10,14 @@ from string import digits, ascii_letters
 import random
 import sys
 import urllib.parse
+from io import BytesIO
+import qrcode
+import base64
 from requests import get, post
 if(settings.BASE_DIR not in sys.path): sys.path.append(settings.BASE_DIR)
 
-from constants import OAUTH_CORE_CLIENT_ID, OAUTH_CORE_CLIENT_SECRET, IPINFO_TOKEN, DEFAULT_CLIENT_COUNTRY_CODE
+from auth2.models import LoginHistory
+from constants import OAUTH_CORE_CLIENT_ID, LOGIN_QR_COLORS, OAUTH_CORE_CLIENT_SECRET, IPINFO_TOKEN, DEFAULT_CLIENT_COUNTRY_CODE
 
 def get_staff_password(username):
 
@@ -30,6 +35,16 @@ def get_client_ip(request):
         ip = request.META.get('REMOTE_ADDR')
     return ip
 
+# @reverse_sync with auth2.models.AVAILABLE_LOGIN_PLATFORMS
+def detect_platform_from_user_agent(user_agent:str) -> str:
+    if('Android' in user_agent):
+        return 'Android'
+    elif('iPhone' in user_agent):
+        return 'Ios'
+    else:
+        # Considering wild card as 'Web' ;)
+        return 'Unknown'
+
 def get_oauth2_tokens_response(request, identifier=None, refresh_token=None,password=None, c_id=OAUTH_CORE_CLIENT_ID, c_secret=OAUTH_CORE_CLIENT_SECRET):
     '''
     gets oauth2 tokens for given identifier (based on username,email, phone)
@@ -39,14 +54,37 @@ def get_oauth2_tokens_response(request, identifier=None, refresh_token=None,pass
         request.data.update({"client_id": c_id, "client_secret": c_secret, "grant_type": "password", "username": identifier, "password": password or "dummy_weak_pass"})
     else:
         request.data.update({"client_id": c_id, "client_secret": c_secret, "grant_type": "refresh_token", "refresh_token": refresh_token})
-        
 
     mutable_data = request.data.copy()
     request._request.POST = request._request.POST.copy()
     for key, value in mutable_data.items():
         request._request.POST[key] = value
 
-    return TokenView.as_view()(request._request)
+    response = TokenView.as_view()(request._request)
+
+    if response.status_code == 200:
+        
+        # We'll save log for this successful login
+        profile = core_authenticate(username=identifier, password=password)
+        
+        if(profile is None):
+            print('[ERROR]: Unable to log LoginHistory stamp!! (functions.py/get_oauth2_tokens_response)')
+            return response
+        
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+
+        if(request.META.get('HTTP_RAW_PLATFORM', None) == 'Web'):
+            platform = 'Web'
+        else:
+            # detect manually
+            platform = detect_platform_from_user_agent(user_agent)
+        client_ip = get_client_ip(request)
+        print('getting: ')
+        print(profile, client_ip, platform, user_agent, sep='::::::')
+        user_agent = user_agent[:200] # Limiting characters
+        LoginHistory.objects.create(profile=profile, client_ip=client_ip, detected_platform=platform, agent=user_agent)
+
+    return response
 
 def modify_http_response_json_content(response:HttpResponse, edits:dict):
 
@@ -127,6 +165,35 @@ def parse_data_from_ips(ips:list, op_label:str='loc'):
         print("Unable to fetch locations based on IPs")
         return []
     
+def generate_png_uri_scheme(data:str) -> str:
+    try:
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=2,
+        )
+        qr.add_data(data)
+        qr.make(fit=True)
+
+        img_buffer = BytesIO()
+        qr.make_image(fill_color=LOGIN_QR_COLORS['FILL'], back_color=LOGIN_QR_COLORS['BACKGROUND']).save(img_buffer)
+
+        qr_code_bytes = img_buffer.getvalue()
+
+        qr_code_base64 = base64.b64encode(qr_code_bytes).decode("utf-8")
+
+        data_uri_scheme = f"data:image/png;base64,{qr_code_base64}"
+        print(f"DEBUG:QR:{data_uri_scheme = }")
+
+        return data_uri_scheme
+
+    except Exception as e:
+
+        print('[ERROR]: While generating QR code: ', e)
+
+        return None
+
 
 def is_valid_url(url):
     try:
