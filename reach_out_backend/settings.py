@@ -122,6 +122,9 @@ OAUTH2_PROVIDER = {
 
 LOG_PATH = os.path.join(BASE_DIR, 'log')
 
+LOGIN_URL='/login'
+LOGIN_REDIRECT_URL='/login'
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -195,7 +198,7 @@ DATABASES = {
        'USER': 'postgres',
        'PASSWORD': 'Krishnan@8172',
        'HOST': 'localhost',
-       'PORT': '2500',
+       'PORT': '5432',
    }
 }
 

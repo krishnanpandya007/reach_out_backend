@@ -42,7 +42,7 @@ class ProfileBackend(ModelBackend):
 
             
         except User.DoesNotExist:
-            return None 
+            return None
 
         else:
 

@@ -7,7 +7,7 @@ from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
-from django.utils.timezone import timedelta, now
+from django.utils.timezone import timedelta, now, datetime, make_aware, get_default_timezone
 from django.conf import settings
 # from django.contrib.auth import get_user_model
 from re import match
@@ -109,8 +109,8 @@ class Profile(AbstractUser):
                     )],
         error_messages={
             'unique': _("Email taken."),
-            'invalid': _("Provide valid email."),
-        })
+            'invalid': _("Provide valid email."), 
+        }) 
     email_verified = models.BooleanField(default=False)
     bio = models.CharField(max_length=100, unique=False, null=True, blank=True)
     profilePicUrl = models.CharField(max_length=150,unique=False, null=True, blank=True) #null means AnonymousProfilePic
@@ -207,7 +207,7 @@ class Profile(AbstractUser):
                 self.full_clean()
 
             else:
-                self.username = 'STAFF:' + self.first_name.lower() + self.last_name.lower()
+                self.username = 'staff_' + self.first_name.lower() + self.last_name.lower()
         
         super(Profile, self).save(*args, **kwargs)
         '''
@@ -326,6 +326,39 @@ class LoginHistory(models.Model):
 
     class Meta:
         ordering = ['-logged_at']
+
+    @property
+    def get_catagorized_stats(self):
+        print('------------')
+        stats =  dict()
+
+        general_counts = 0
+        general_logged_at = make_aware(datetime(year=2003, month=9, day=19), get_default_timezone()) # Any Date before publishing
+
+        for platform in AVAILABLE_LOGIN_PLATFORMS:
+
+            platform_name = platform[1]
+
+            platform_logins = LoginHistory.objects.filter(profile=self.profile, detected_platform=platform_name)
+            
+            counts = platform_logins.count()
+
+            general_counts += counts
+
+            general_logged_at = max(general_logged_at, platform_logins.first().logged_at if platform_logins.exists() else general_logged_at)
+
+            stats[platform[0]] = {
+                "count": counts,
+                "logged_at": platform_logins.first().logged_at if platform_logins.exists() else '—'
+            } 
+
+        stats["general/total"] = {
+            "count": general_counts,
+            "logged_at": general_logged_at
+        }
+        print("DEBUG::", stats)
+        return stats
+
 
     def __str__(self):
         return self.profile.get_full_name() + f" ({self.detected_platform}) : " + str(self.client_ip)

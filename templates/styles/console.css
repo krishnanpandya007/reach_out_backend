@@ -1,0 +1,7 @@
+.opened_detail{
+    display: '';
+}
+
+.closed_detail{
+    display: none;
+}

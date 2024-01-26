@@ -1,0 +1,482 @@
+{% extends 'base.html' %}
+{% block header_addon %}
+<title>Admin Console - ReachOut</title>
+<style>
+  .opened_detail{
+    display: '';
+  }
+
+  .closed_detail{
+    display: none;
+  }
+</style>
+{% endblock header_addon %}
+{% block content %}
+    <div class="wrapper_searcher" style="display: flex;align-items: center;justify-items: center;flex-direction: column;height: 70vh;">
+        <br/>
+        <br/>
+        <form method="post" action="{% url 'Console View' %}" onsubmit="(e) => {e.preventDefault();}" style="width: 100%; border: 1px solid #c4c4c4;border-radius: 7px; padding: 2rem;">
+          {% csrf_token %}  
+          <div style="display: flex;width: 100%;justify-content: space-between;align-items: center;">
+                <h3><b><code style="color:black;">Console</code></b></h3>
+                <div class="hand_actions" style="display: flex;gap: 0.5rem;">
+
+                  <!-- <div class="action_history" style="padding: 0.3rem 0.5rem;border: 1px solid #c4c4c4;border-radius: 5px;"> -->
+                    <a href="javascript:" title="History"  style="padding: 0.3rem 0.5rem;aspect-ratio: 1;display: grid;place-items: center;border: 1px solid #c4c4c4;border-radius: 5px;"><svg width="15" preserveAspectRatio="none" height="15"  viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.15 7.49998C13.15 4.66458 10.9402 1.84998 7.50002 1.84998C4.72167 1.84998 3.34849 3.9064 2.76335 5H4.5C4.77614 5 5 5.22386 5 5.5C5 5.77614 4.77614 6 4.5 6H1.5C1.22386 6 1 5.77614 1 5.5V2.5C1 2.22386 1.22386 2 1.5 2C1.77614 2 2 2.22386 2 2.5V4.31318C2.70453 3.07126 4.33406 0.849976 7.50002 0.849976C11.5628 0.849976 14.15 4.18537 14.15 7.49998C14.15 10.8146 11.5628 14.15 7.50002 14.15C5.55618 14.15 3.93778 13.3808 2.78548 12.2084C2.16852 11.5806 1.68668 10.839 1.35816 10.0407C1.25306 9.78536 1.37488 9.49315 1.63024 9.38806C1.8856 9.28296 2.17781 9.40478 2.2829 9.66014C2.56374 10.3425 2.97495 10.9745 3.4987 11.5074C4.47052 12.4963 5.83496 13.15 7.50002 13.15C10.9402 13.15 13.15 10.3354 13.15 7.49998ZM7.5 4.00001C7.77614 4.00001 8 4.22387 8 4.50001V7.29291L9.85355 9.14646C10.0488 9.34172 10.0488 9.65831 9.85355 9.85357C9.65829 10.0488 9.34171 10.0488 9.14645 9.85357L7.14645 7.85357C7.05268 7.7598 7 7.63262 7 7.50001V4.50001C7 4.22387 7.22386 4.00001 7.5 4.00001Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg></a>
+                  <!-- </div> -->
+
+                  <!-- <div class="action_handbook" style="padding: 0.3rem;border: 1px solid #c4c4c4;border-radius: 5px;"> -->
+                    <a href="javascript:" data-bs-toggle="modal" data-bs-target="#exampleModal" title="Guide/General filters" style="padding: 0.3rem 0.5rem;display: grid;place-items: center;border: 1px solid #c4c4c4;border-radius: 5px;"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 2.5C3 2.22386 3.22386 2 3.5 2H9.08579C9.21839 2 9.34557 2.05268 9.43934 2.14645L11.8536 4.56066C11.9473 4.65443 12 4.78161 12 4.91421V12.5C12 12.7761 11.7761 13 11.5 13H3.5C3.22386 13 3 12.7761 3 12.5V2.5ZM3.5 1C2.67157 1 2 1.67157 2 2.5V12.5C2 13.3284 2.67157 14 3.5 14H11.5C12.3284 14 13 13.3284 13 12.5V4.91421C13 4.51639 12.842 4.13486 12.5607 3.85355L10.1464 1.43934C9.86514 1.15804 9.48361 1 9.08579 1H3.5ZM4.5 4C4.22386 4 4 4.22386 4 4.5C4 4.77614 4.22386 5 4.5 5H7.5C7.77614 5 8 4.77614 8 4.5C8 4.22386 7.77614 4 7.5 4H4.5ZM4.5 7C4.22386 7 4 7.22386 4 7.5C4 7.77614 4.22386 8 4.5 8H10.5C10.7761 8 11 7.77614 11 7.5C11 7.22386 10.7761 7 10.5 7H4.5ZM4.5 10C4.22386 10 4 10.2239 4 10.5C4 10.7761 4.22386 11 4.5 11H10.5C10.7761 11 11 10.7761 11 10.5C11 10.2239 10.7761 10 10.5 10H4.5Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg></a>
+                  <!-- </div> -->
+                  <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered" >
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title" id="exampleModalLabel">General filters - BP(s)</h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                          <div class="entry" style="display: flex;gap: 0.5rem; margin-bottom: 0.7rem;">
+                            <span class="badge bg-primary">city</span><small style="color: blue;">string</small><small> - Filters user have specified city ISPL.</small>
+                          </div>
+                          <div class="entry" style="display: flex;gap: 0.5rem;"">
+                            <span class="badge bg-primary">page</span><span style="color: blue;">int</span><small> - Get results for specified page no.</small>
+                          </div>                          
+                        </div>
+                        <!-- <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                          <button type="button" class="btn btn-primary">Save changes</button>
+                        </div> -->
+                      </div>
+                    </div>
+                  </div>
+                </div>
+            </div>
+            <br/>
+            
+            <div class="input-group">
+                <span class="input-group-text" id="addon-wrapping">@</span>
+                <input type="text" placeholder="Name" name="filter_user_name" aria-label="Name" class="form-control">
+                <input type="text" placeholder="General filters" name="filter_general_filters" aria-label="General filter" class="form-control">
+            </div>
+            <br/>
+            <hr/>
+            <br/>
+            <div class="filter_actions" style="display: flex; justify-content: space-between;width: 100%;flex-wrap: wrap;">
+                <div class="form-check">
+                    <input class="form-check-input action_filter" data-viewAction="last_seen" data-profileId="1" type="checkbox" name="last_seen" id="last_seen">
+                    <label class="form-check-label" for="last_seen">
+                        Last seen
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input action_filter" data-viewAction="isp_location" data-profileId="1" type="checkbox" name="isp_location" id="isp_location">
+                    <label class="form-check-label" for="isp_location">
+                        ISP location
+                    </label>
+                </div>
+
+            <div class="form-check">
+                <input class="form-check-input action_filter" data-viewAction="login_activity" data-profileId="1" type="checkbox" name="login_activity" id="login_activity">
+                <label class="form-check-label" for="login_activity">
+                    Login activity
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input action_filter" data-viewAction="active_users" data-profileId="1" type="checkbox" name="active_users" id="active_users">
+                <label class="form-check-label" for="active_users">
+                    Analytics
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input action_filter" data-viewAction="user_info" data-profileId="1" type="checkbox" name="user_info" id="user_info">
+                <label class="form-check-label" for="user_info">
+                    Information
+                </label>
+            </div>
+        </div>
+        <br/>
+        <div style="width: 100%; display: flex; gap: 1rem;">
+            <button type="submit" onclick="selectAllActions()" class="btn btn-outline-primary" style="flex: 1;">Fetch all</button>
+            <button type="submit" class="btn btn-primary" style="flex: 1;"  >Fetch selected</button>
+        </div>
+      </form>
+
+    <br/>
+    <br/>
+    {% if request.method == 'POST' %}
+
+    <div style="display: flex;width: 100%; align-items: center;justify-content: space-between; margin-bottom: 1rem;">
+        <div class="result_about">
+          <b>Results</b>
+          — <small><b>{{ no_of_results }}</b></small> |
+          <small>{{ time_taken }}</small>
+        </div>
+        <div class="result_actions" style="display: flex;">
+            <small><code title="Page size: {{ page_size }}">Page: {{ current_page }}/{{ total_pages }}</code></small>
+            <!-- <label class="form-check-label" for="active_users">
+                View all
+            </label><div style="margin-left: 0.3rem;"><input class="form-check-input form-switch" type="checkbox" id="flexSwitchCheckDefault"></div> -->
+        </div>
+    </div>
+
+    <div class="results" style="width: 100%;padding: 2rem; border: 1px solid #c4c4c450;border-radius: 7px;">
+
+        {% for profile in query_set %}
+
+        <div class="result_card" style="width: 100%;display: flex;flex-direction: column;gap: 1rem; padding: 2rem;">
+          <div style="width: 100%;display: flex;gap: 1rem; margin-bottom: 0.5rem;">
+
+              <img width="100rem" height="100rem" style="object-fit: cover;" src="{{ profile.safe_profile_pic_url }}" alt="">
+              
+              <div class="profile_overview" style="display: flex;flex-direction: column; width: 35%;">
+                  <b>{{ profile.get_full_name }}</b>
+                  <small style="margin-top: 0.2rem;">{{ profile.bio }}</small>
+              </div>
+
+              <div class="result_profile_config_options " style="flex: 1;display: flex;align-items: flex-end;flex-direction: column;">
+                  <table>
+                      <tbody>
+                          <tr>
+                            <th scope="row" style="font-weight: 300;padding-right: 0.2rem;"><code style="color: white;background-color: #3CCF4E; padding: 0.1rem 0.2rem;">Reachers</code></th>
+                            <td><b>{{ profile.reachers.count }}</b></td>
+                          </tr>
+                          <tr>
+                              <th scope="row" style="font-weight: 300;"><code style="color: white; background-color: red; padding: 0.1rem 0.2rem;">Reports </code></th>
+                              <td><b>{{ profile.analytics.reports.count }}</b></td>
+                          </tr>
+                          <tr>
+                              <th scope="row" style="font-weight: 300;padding-right: 0.3rem;"><code style="color: #000000;">View</code></th>
+                              <td class="form-switch"><input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault"></td>
+                          </tr>
+        
+                        </tbody>
+                  </table>
+
+              </div>
+          </div>
+          
+          <div style="display: flex;width: 100%;justify-content: space-evenly;">
+              {% if last_seen %}
+                <div>
+                  <input type="radio" onclick="handleCardViewAction(this)" name="view_actions_{{ profile.pk }}" data-profileId="{{ profile.pk }}" data-viewAction="last_seen" id="view_action_{{ profile.pk }}_last_seen">
+                  <label for="view_action_{{ profile.pk }}_last_seen">
+                    <small>Last seen</small>
+                  </label>
+                </div>
+              {% endif %}
+
+              {% if isp_location %}
+
+                <div >
+                  <input type="radio" onclick="handleCardViewAction(this)" name="view_actions_{{ profile.pk }}" data-profileId="{{ profile.pk }}" data-viewAction="ispl" id="view_action_{{ profile.pk }}_ispl" >
+                  <label for="view_action_{{ profile.pk }}_ispl">
+                    <small>ISP location</small>
+                  </label>
+                </div>
+              {% endif %}
+
+              {% if login_activity %}
+
+                <div >
+                  <input type="radio" onclick="handleCardViewAction(this)" name="view_actions_{{ profile.pk }}" data-profileId="{{ profile.pk }}" data-viewAction="la" id="view_action_{{ profile.pk }}_la" >
+                  <label  for="view_action_{{ profile.pk }}_la">
+                    <small>Login activity</small>
+                  </label>
+                </div>
+
+              {% endif %}
+
+              {% if active_users %}
+              
+                <div>
+                  <input type="radio" onclick="handleCardViewAction(this)" name="view_actions_{{ profile.pk }}" data-profileId="{{ profile.pk }}" data-viewAction="a" id="view_action_{{ profile.pk }}_a" >
+                  <label for="view_action_{{ profile.pk }}_a">
+                    <small>Analytics</small>
+                  </label>
+                </div>
+
+              {% endif %}
+
+              {% if active_users %}
+              
+                <div >
+                  <input type="radio"  onclick="handleCardViewAction(this)" name="view_actions_{{ profile.pk }}" data-profileId="{{ profile.pk }}" data-viewAction="i" id="view_action_{{ profile.pk }}_i" >
+                  <label for="view_action_{{ profile.pk }}_i">
+                    <small>Info</small>
+                  </label>
+                </div>
+                {% endif %}
+              </div>
+
+
+          {% if last_seen %}
+
+          <table class="table closed_detail table_view_{{ profile.pk }}" id="detail_last_seen_{{ profile.pk }}" style="font-size: small; ">
+              <thead>
+                <tr>
+                  <th scope="col">Index</th>
+                  <th scope="col">Field</th>
+                  <th scope="col">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">1</th>
+                  <td>Last seen (absolute)</td>
+                  {% if profile.last_seen|date:"d F Y  H:m:s" %}
+                    <td>{{ profile.last_seen|date:"d F Y  H:m:s"  }}</td>
+                  {% else %}
+                    <td>—</td>
+                  {% endif %}
+                </tr>
+                <tr>
+                  <th scope="row">2</th>
+                  <td>Last seen (relative)</td>
+                  {% if profile.last_seen|timesince %}
+                    <td>{{ profile.last_seen | timesince}} ago</td>
+                  {% else %}
+                    <td>—</td>
+                  {% endif %}
+                </tr>
+
+              </tbody>
+            </table>
+
+          {% endif %}
+
+          {% if isp_location %}
+
+          <table class="table closed_detail table_view_{{ profile.pk }}" id="detail_ispl_{{ profile.pk }}" style="font-size: small; ">
+              <thead>
+                <tr>
+                  <th scope="col">Index</th>
+                  <th scope="col">Field</th>
+                  <th scope="col">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">1</th>
+                  <td>IP address</td>
+                  {% if profile.point.ip %}
+                    <td>{{ profile.point.ip }}</td>
+                  {% else %}
+                    <td>—</td>
+                  {% endif %}
+                </tr>
+                <tr>
+                  <th scope="row">2</th>
+                  <td>HOST city</td>
+                  {% if profile.point.city %}
+                    <td>{{ profile.point.city }} ago</td>
+                  {% else %}
+                    <td>—</td>
+                  {% endif %}
+                </tr>
+                <tr>
+                  <th scope="row">3</th>
+                  <td>Updated at</td>
+                  {% if profile.point.updated_at|timesince %}
+                    <td>{{ profile.point.updated_at|timesince }} ago</td>
+                  {% else %}
+                    <td>—</td>
+                  {% endif %}
+                </tr>
+
+              </tbody>
+            </table>
+
+          {% endif %}
+
+          {% if active_users %}
+
+          <table class="table closed_detail table_view_{{ profile.pk }}" id="detail_a_{{ profile.pk }}" style="font-size: small; ">
+              <thead>
+                <tr>
+                  <th scope="col">Index</th>
+                  <th scope="col">Field</th>
+                  <th scope="col">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">1</th>
+                  <td>Impressions</td>
+                  <td>{{ profile.analytics.impressions }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">2</th>
+                  <td>Predicted tags</td>
+                  {% if profile.analytics.predicted_tags|length %}
+                    <td>{{ profile.analytics.predicted_tags|join:", " }}</td>
+                  {% else %}
+                    <td>—</td>
+                  {% endif %}
+                </tr>
+                <tr>
+                  <th scope="row">3</th>
+                  <td>Reports</td>
+                  <td>{{ profile.analytics.reports.count }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">4</th>
+                  <td>Profile views</td>
+                  <td>{{ profile.analytics.profile_views.count }}</td>
+                </tr>
+              </tbody>
+            </table>
+
+          {% endif %}
+
+          {% if login_activity %}
+            <table class="table closed_detail table_view_{{ profile.pk }}" id="detail_la_{{ profile.pk }}" style="font-size: small;">
+              <thead>
+                <tr>
+                  <th scope="col">Index</th>
+                  <th scope="col">Platform</th>
+                  <th scope="col">Count</th>
+                  <th scope="col">Logged at</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if profile.login_history.exists %}
+                {% with profile.login_history.all|first as lh %}
+                  {% for catagory_name, catagory_stats in lh.get_catagorized_stats.items %}
+                    <tr>
+                      <th scope="row">{{ forloop.counter }}</th>
+                      <td>{{ catagory_name }}</td>
+                      {% for stat_name, stat_value in catagory_stats.items %}
+                        <td>{{ stat_value }}</td>
+                      {% endfor %}
+
+                    </tr>
+                  {% endfor %}
+                {% endwith %}
+                {% else %}
+                <tr>
+                  <th><i>No logins!!</i></th>
+                </tr>
+                {% endif %}
+              </tbody>
+            </table>
+            {% endif %}
+
+            {% if user_info %}
+
+            <table class="table closed_detail table_view_{{ profile.pk }}" id="detail_i_{{ profile.pk }}" style="font-size: small;">
+                <thead>
+                  <tr>
+                    <th scope="col">Index</th>
+                    <th scope="col">Field</th>
+                    <th scope="col">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">1</th>
+                    <td>Email</td>
+                    <td>{{ profile.email }}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">2</th>
+                    <td>Phone</td>
+                    {% if profile.phone %}
+                    <td>{{ profile.phone.number }}</td>
+                    {% else %}
+                    <td>—</td>
+                    {% endif %}
+
+                  </tr>
+                  <tr>
+                    <th scope="row">3</th>
+                    <td>recvd bmarks</td>
+                    <td>{{ profile.marks.count }}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">4</th>
+                    <td>Synced contacts</td>
+                    <td>{{ profile.synced_contacts }}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">5</th>
+                    <td>Socials</td>
+                    {% if profile.socials.exists %}
+                    {% for social in profile.socials.all %}
+                      <td>{{ social.socialMedia }}</td>
+                    {% endfor %}
+                    {% else %}
+                      <td>—</td>
+                    {% endif %}
+                  </tr>
+                  
+  
+                </tbody>
+              </table>
+  
+            {% endif %}
+            
+      </div>
+      <hr/>
+
+        {% endfor %}
+
+    <br/>
+        
+        <!-- <nav aria-label="Page navigation example">
+        <ul class="pagination">
+          <li class="page-item">
+            <a class="page-link" href="#" aria-label="Previous">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+          <li class="page-item"><a class="page-link" href="#">1</a></li>
+          <li class="page-item"><a class="page-link" href="#">2</a></li>
+          <li class="page-item"><a class="page-link" href="#">3</a></li>
+          <li class="page-item">
+            <a class="page-link" href="#" aria-label="Next">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+        </ul>
+      </nav> -->
+
+      {% endif %}
+    </div>
+    <script>
+      function selectAllActions() {
+
+        let actions =Array.from(document.getElementsByClassName('action_filter'))
+        
+        for(action in actions){
+          actions[action].checked = true;
+        }
+
+        return true; 
+      }
+
+      function handleCardViewAction(e){
+
+        let card_profile_id =  e.getAttribute('data-profileId');
+        let action_name =  e.getAttribute('data-viewAction');
+
+        // get all tables and disable w/ profile id class name
+        let profile_tables = Array.from(document.getElementsByClassName(`table_view_${card_profile_id}`))
+        for (profile_table in profile_tables){
+
+          if(profile_tables[profile_table].id === `detail_${action_name}_${card_profile_id}`){
+            console.log(profile_tables[profile_table])
+            profile_tables[profile_table].classList.remove('closed_detail')
+            profile_tables[profile_table].classList.add('opened_detail')
+          }
+          else{
+            profile_tables[profile_table].classList.add('closed_detail')
+            profile_tables[profile_table].classList.remove('opened_detail')
+
+          }
+
+        }
+
+      }
+    </script>
+    {% endblock content %}

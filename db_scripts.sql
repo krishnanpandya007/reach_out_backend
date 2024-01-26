@@ -151,12 +151,12 @@ $$;
 
 -- We'll create new recommendation series when app startup and loads for first recommendations, then after we follow below approach
 -- SO two commands [CREATE_RECOMMENDATIONS, FETCH_RECOMMENDATIONS] on AppStartup(InitialLoad);;we'll detect this by checking if (requested_counter or page)==0
--- Otherwise [FETCH_RECCOMENDATIONS] NO-Circullarity (CREATES DUPLICATIONS)
+-- Otherwise [FETCH_RECCOMENDATIONS] NO-Circullarity-Prevention (CREATES DUPLICATIONS)
 -- So that each time app restartes it has something to show instead of NOTHING!
 -- BOOOM! no need for any pointer just delete predicted posts after returning to backend server
 -- Make sure it'll insert as `raw` without ORM, after creation it'll return first five elements and set pointer to 5
 
 -- For fetching `ReachOut` recommendations use [CREATE_RECOMMENDATIONS]
 -- select iter.id as profile_id ,get_u2u_global_score(1,iter.id::int) as score from auth2_profile iter where iter.id != 1 order by score desc;
--- For fetching `YouMayKNow` recommendations use
+-- For fetching `YouMayKNow`/`NearYou` recommendations use
     -- select iter.id as profile_id ,get_u2u_local_score(1,iter.id::int) as score from auth2_profile iter where iter.id != 1 and score >= 0 order by score desc;

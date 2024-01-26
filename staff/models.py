@@ -4,7 +4,7 @@ from django.db import models
 WHITELISTED_CONSTRAINTS_FAMILIES = [
     ('active_users', 'Active Users'),
     ('recently_active_users', 'Recently Active Users'),
-    ('active_qr_sessions', "Active QR sessions")
+    ('active_qr_sessions', "Active QR sessions") # handle: {'number': 0}
 ]
 
 class Constraint(models.Model):

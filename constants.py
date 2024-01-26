@@ -1,7 +1,7 @@
 import os 
 from enum import Enum
 
-BACKEND_ROOT_URL = "http://192.168.32.153:8000"
+BACKEND_ROOT_URL = "http://127.0.0.1:8000"
 
 SOCIAL_PROFILE_LINK_PREFFIXES = {
     'Instagram': 'https://www.instagram.com/',
@@ -97,6 +97,8 @@ OAUTH_CONFIGS = {
 
 # Make sure this labels are as mentioned as in reach_out_backend/urls.py for any app
 TRACE_URL_PREFIXES = ['auth2', 'api', 'payment']
+
+MEMCACHED_SERVICE_ENABLED = True
 
 SOCIAL_LINKS_PREFIXES = {
 
