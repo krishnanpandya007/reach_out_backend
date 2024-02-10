@@ -17,7 +17,7 @@ class Recommendation(models.Model):
 
     target_profile = models.ForeignKey(Profile, on_delete=models.CASCADE)
     recommendation_type = models.CharField(max_length=8, null=False, blank=False) # standard|nearme
-    recommendation_profiles = ArrayField(base_field=models.BigIntegerField(), null=True, blank=True)
+    recommendation_profiles = ArrayField(base_field=models.BigIntegerField(), default=list, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     @property
@@ -61,6 +61,7 @@ class Recommendation(models.Model):
             try:
                 cur.execute(f"select iter.id as profile_id ,{_recommendation_fn}({self.target_profile.pk},iter.id::int) as score from auth2_profile iter where iter.id != {self.target_profile.pk} and iter.is_staff=false order by score desc;")
                 ids = [rec_res[0] for rec_res in cur.fetchall() if int(rec_res[1]) != -1]
+                print(f"Fetched ids for recommendations from direct DB [Purely]", ids)
                 self.recommendation_profiles = ids
             except Exception as e:
                 logger.critical('Error Making recommandations', exc_info=str(e))

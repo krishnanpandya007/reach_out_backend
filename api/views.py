@@ -319,7 +319,7 @@ class FeedView(APIView):
     '''
     BRR!!! this is advanced kind of stuff. so if you scared even by assignments deadlines, Don't touch it😂
     
-    Besides that: 
+    Jokes aside: 
         - In future if we want to allow unauthenticated users to take advantage of it, make a `get` method and remove permission_classess bearer also add auth_check in `post`
 
     '''
@@ -343,7 +343,15 @@ class FeedView(APIView):
 
             user_profile = request.user
 
-            recommender, _ = Recommendation.objects.get_or_create(target_profile=user_profile, recommendation_type=feed_type)
+            recommender = Recommendation.objects.filter(target_profile=user_profile, recommendation_type=feed_type)
+
+            if(recommender.exists()):
+
+                recommender = recommender.first()              
+
+            else:
+
+                recommender = Recommendation.objects.create(target_profile=user_profile, recommendation_type=feed_type, recommendation_profiles=[])
 
             recommended_profiles = recommender.recommendations
 

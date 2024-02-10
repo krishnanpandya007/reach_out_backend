@@ -24,7 +24,7 @@ load_dotenv()
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-7cy47=8vs8t^vd7a7_)9l0c2xb$g_5ad-fpj*7s=!!jtyfu#gv'
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['backend-61489.reachout.org.in', '127.0.0.1']
 
