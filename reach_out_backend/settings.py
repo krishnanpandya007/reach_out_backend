@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-7cy47=8vs8t^vd7a7_)9l0c2xb$g_5ad-fpj*7s=!!jtyfu#gv
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.32.153', '127.0.0.1']
+ALLOWED_HOSTS = ['backend-61489.reachout.org.in', '127.0.0.1']
 
 
 # Application definition
@@ -106,6 +106,7 @@ REST_FRAMEWORK = {
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     'http://192.168.4.153:3000',
+    'https://reachout.org.in',
     'http://127.0.0.1:3000',
 ]
 
@@ -194,11 +195,11 @@ DATABASES = {
     # }
     'default': {
        'ENGINE': 'django.db.backends.postgresql',
-       'NAME': 'postgres',
-       'USER': 'postgres',
-       'PASSWORD': 'Krishnan@8172',
-       'HOST': 'localhost',
-       'PORT': '5432',
+       'NAME': 'defaultdb',
+       'USER': 'doadmin',
+       'PASSWORD': 'AVNS_CMFDAhq4-lGNP4jt-t3',
+       'HOST': 'prod-db-do-user-15674904-0.c.db.ondigitalocean.com',
+       'PORT': '25060',
    }
 }
 
@@ -232,7 +233,7 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
@@ -243,7 +244,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
-
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

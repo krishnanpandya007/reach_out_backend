@@ -35,6 +35,7 @@ class Recommendation(models.Model):
         '''
 
         rec_profile_ids = self.recommendation_profiles 
+        print("HelloPopulatingRecomendations")
         print(rec_profile_ids)
         # First need to check if we have enough ids to fulfill recommendation quantity
         if(len(self.recommendation_profiles) <= FEED_PAGE_SIZE):

@@ -4,7 +4,7 @@ from firebase_admin import messaging
 from global_utils.decorators import memcache
 
 # Initialize the Firebase Admin SDK
-cred = credentials.Certificate('/home/dizzy/workspace/reachoutd/daily/reachout_firebase_creds.json')
+cred = credentials.Certificate('/home/krishnan/reachoutd/daily/reachout_firebase_creds.json')
 firebase_admin.initialize_app(cred)
 
 def handle_follower_notification(target_profile, target_uid:int=None, reacher_uid:int=None, reacher_name:str='ReachOut user'):
