@@ -129,7 +129,7 @@ class Profile(AbstractUser):
         '''
         NOTE: In development-mode we letting it unlimited access
         '''
-        if(settings.DEBUG or self.username=="razorpayteam2"):
+        if(settings.DEBUG or self.username == ""):
             return True
         else:
             if(self.analysis_unlocked_at == None):

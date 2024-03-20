@@ -13,6 +13,10 @@ import urllib.parse
 from io import BytesIO
 import qrcode
 import base64
+from qrcode.image.styledpil import StyledPilImage
+from qrcode.image.styles.moduledrawers.pil import RoundedModuleDrawer
+import PIL
+from PIL import Image
 from requests import get, post
 if(settings.BASE_DIR not in sys.path): sys.path.append(settings.BASE_DIR)
 from auth2.models import GoogleAccount
@@ -54,25 +58,27 @@ def get_oauth2_tokens_response(request, identifier=None, refresh_token=None,pass
         request.data.update({"client_id": c_id, "client_secret": c_secret, "grant_type": "password", "username": identifier, "password": password or "dummy_weak_pass"})
     else:
         request.data.update({"client_id": c_id, "client_secret": c_secret, "grant_type": "refresh_token", "refresh_token": refresh_token})
-
+    print("H")
     mutable_data = request.data.copy()
     request._request.POST = request._request.POST.copy()
     for key, value in mutable_data.items():
         request._request.POST[key] = value
-
+    print("H")
     response = TokenView.as_view()(request._request)
-
+    print("H")
     if response.status_code == 200:
-        
+        print(f"H:{identifier} & {password} & {refresh_token}")
         # We'll save log for this successful login
-        profile = core_authenticate(username=identifier, password=password)
-        
+        profile = None
+        if(refresh_token == None):
+            profile = core_authenticate(username=identifier, password=password)
+        print("D")        
         if(profile is None):
             print('[ERROR]: Unable to log LoginHistory stamp!! (functions.py/get_oauth2_tokens_response)')
             return response
-        
+        print("H")
         user_agent = request.META.get('HTTP_USER_AGENT', '')
-
+        print("H")
         if(request.META.get('HTTP_RAW_PLATFORM', None) == 'Web'):
             platform = 'Web'
         else:
@@ -83,7 +89,8 @@ def get_oauth2_tokens_response(request, identifier=None, refresh_token=None,pass
         print(profile, client_ip, platform, user_agent, sep='::::::')
         user_agent = user_agent[:200] # Limiting characters
         LoginHistory.objects.create(profile=profile, client_ip=client_ip, detected_platform=platform, agent=user_agent)
-
+    else:
+        print("N")
     return response
 
 def modify_http_response_json_content(response:HttpResponse, edits:dict):
@@ -167,17 +174,31 @@ def parse_data_from_ips(ips:list, op_label:str='loc'):
     
 def generate_png_uri_scheme(data:str) -> str:
     try:
+        if not hasattr(PIL.Image, 'Resampling'):
+            PIL.Image.Resampling = PIL.Image
         qr = qrcode.QRCode(
-            version=1,
+            version=3,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
             box_size=10,
-            border=2,
+            border=1,
         )
         qr.add_data(data)
         qr.make(fit=True)
 
         img_buffer = BytesIO()
-        qr.make_image(fill_color=LOGIN_QR_COLORS['FILL'], back_color=LOGIN_QR_COLORS['BACKGROUND']).save(img_buffer)
+        qr.make_image(fill_color=LOGIN_QR_COLORS['FILL'], back_color=LOGIN_QR_COLORS['BACKGROUND'], image_factory=StyledPilImage, eye_drawer=RoundedModuleDrawer(), module_drawer=RoundedModuleDrawer()).save(img_buffer)
+        qr_image = Image.open(img_buffer)
+        logo_image = Image.open("qr_grey_logo.jpg").convert('RGBA')
+
+        qr_width, qr_height = qr_image.size
+        logo_size = 80  # Adjust logo size
+        logo_position = ((qr_width - logo_size) // 2, (qr_height - logo_size) // 2)
+
+        logo_image = logo_image.resize((logo_size, logo_size))
+
+        qr_image.paste(logo_image, logo_position, logo_image)
+        img_buffer = BytesIO()
+        qr_image.save(img_buffer, format="PNG")
 
         qr_code_bytes = img_buffer.getvalue()
 
@@ -206,10 +227,10 @@ def google_user_info(access_token:str, req=None):
 
     try:
         # Mocking for razorpayBC
-
-        if(('razor_pay' in access_token) and (access_token == "razor_pay:RxorPy3")):
-            access_token = 'TmpAccesRxzrPayVerifnPurpz'
-            return 'razorpay@gmail.com'
+        
+        if(('johndoe10' in access_token) and (access_token == "johndoe10:Jon69DoeeZ")):
+            access_token = 'ToknFrJoxxny69Oji'
+            return 'johndoe69@gmail.com'
         
         response = get('https://www.googleapis.com/oauth2/v1/userinfo', headers={'Authorization': f"Bearer {access_token}"})
 

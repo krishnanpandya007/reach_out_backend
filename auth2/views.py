@@ -418,17 +418,17 @@ class UpdateAccessTokenView(APIView):
                         assert response.status_code == 200, "Invalid Refresh Code" # unable to fetch access,refreshTokten
 
                         data = loads(response.content)
-                        response.set_cookie('access_token', data['access_token'], max_age=data['expires_in'], secure=True, httponly=True, samesite='Strict')
-                        response.set_cookie('refresh_token', data['refresh_token'], max_age=getattr(settings, 'OAUTH2_PROVIDER', {})['REFRESH_TOKEN_EXPIRE_SECONDS'], secure=True, httponly=True, samesite='Strict')
-                        response.set_cookie('stale_authenticated', 'true', max_age=getattr(settings, 'OAUTH2_PROVIDER', {})['REFRESH_TOKEN_EXPIRE_SECONDS'], secure=True, httponly=False, samesite='Lax')
+                        response.set_cookie('access_token', data['access_token'], max_age=data['expires_in'], secure=True, httponly=True, samesite='Strict', domain="reachout.org.in")
+                        response.set_cookie('refresh_token', data['refresh_token'], max_age=getattr(settings, 'OAUTH2_PROVIDER', {})['REFRESH_TOKEN_EXPIRE_SECONDS'], secure=True, httponly=True, samesite='Strict', domain="reachout.org.in")
+                        response.set_cookie('stale_authenticated', 'true', max_age=getattr(settings, 'OAUTH2_PROVIDER', {})['REFRESH_TOKEN_EXPIRE_SECONDS'], secure=True, httponly=False, samesite='Lax', domain="reachout.org.in")
 
                         response.content = b''
                         return response
 
 
-
+                  print("Until_NOw_Working", refresh_token, request)
                   response = get_oauth2_tokens_response(request, refresh_token=refresh_token)
-
+                  print("After_this_also_working")
                   return response
 
             except AssertionError as ae:
@@ -609,9 +609,9 @@ class WebLogoutView(APIView):
 
       def get(self, request):
             cres = HttpResponse(status=200)       
-            cres.set_cookie('access_token', None, max_age=0, secure=True, httponly=True, samesite='Strict')
-            cres.set_cookie('refresh_token', None, max_age=0, secure=True, httponly=True, samesite='Strict')
-            cres.set_cookie('stale_authenticated', None, max_age=0, secure=True, httponly=False, samesite='Lax')
+            cres.set_cookie('access_token', None, max_age=0, secure=True, httponly=True, samesite='Strict', domain="reachout.org.in")
+            cres.set_cookie('refresh_token', None, max_age=0, secure=True, httponly=True, samesite='Strict', domain="reachout.org.in")
+            cres.set_cookie('stale_authenticated', None, max_age=0, secure=True, httponly=False, samesite='Lax', domain="reachout.org.in")
             return cres
 
 @api_view(['GET'])

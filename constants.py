@@ -167,7 +167,7 @@ SOCIAL_TOKEN_PROTECTOR_SALT = os.getenv('SOCIAL_TOKEN_PROTECTOR_SALT')
 
 USERNAME_REGEX = r"^[a-zA-Z0-9]+$" #Alphanumeric Only
 EMAIL_REGEX = r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$"
-PHONE_REGEX = r"^\+\d{2,3}\s\d{5}\-\d{5}$"
+PHONE_REGEX = r"^\+\d{1,3}\s\d{5}\-\d{5}$"
 
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
@@ -202,7 +202,7 @@ MAX_ACTIVE_LOGIN_QR_SESSIONS = 50
 
 
 LOGIN_QR_COLORS = {
-    'BACKGROUND': '#3CCF4E',
+    'BACKGROUND': '#000000',
     'FILL': 'white'
 }
 
@@ -269,7 +269,7 @@ EMAIL_BASIC_STRUCTURE = ('''
 				<img style="position: absolute;top: -65px" height="100" width="100" src="%s" />
 			</div>
 			<div style="padding: 6px 10px;color: #59CE8F;background-color: white;border-radius: 5px;display: inline-block;font-weight: 900;display: flex;align-items: center;gap: 1.5rem;font-size: 1.3rem">
-                <img style="border-radius: 8px" src="https://i.pinimg.com/originals/ee/18/c6/ee18c626711eb9c3f816b1ba3300b9b4.png" width="38" height="38" />
+                <img style="border-radius: 8px" src="https://reachout.org.in/logo192.png" width="38" height="38" />
                 &nbsp;&nbsp;
                 <div>
                     <span>Heya there,</span>
